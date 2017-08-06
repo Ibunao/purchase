@@ -158,7 +158,7 @@ class ProductModel extends \yii\db\ActiveRecord
 
         $query = self::find()
             ->where(['disabled' => 'false'])
-            ->groupBy('serial_num')
+            ->groupBy(['serial_num', 'purchase_id'])
             ->orderBy(['serial_num' => SORT_DESC]);
         if (!empty($arr['serialNum'])) {
             $query->andWhere(['p.serial_num' => $arr['serialNum']]);
@@ -190,7 +190,7 @@ class ProductModel extends \yii\db\ActiveRecord
         $pagination = new Pagination(['totalCount' => $count, 'pageSize' => ParamsClass::$pageSize]);
 
         $query->alias('p')
-            ->select(['p.serial_num', 'p.model_sn', 'p.name', 'b.cat_name', 'm.cat_name AS cat_middle', 'p.is_down', 's.small_cat_name', 'c.color_name', 'p.cost_price'])
+            ->select(['p.purchase_id', 'p.serial_num', 'p.model_sn', 'p.name', 'b.cat_name', 'm.cat_name AS cat_middle', 'p.is_down', 's.small_cat_name', 'c.color_name', 'p.cost_price'])
             ->leftJoin('meet_color as c', 'p.color_id = c.color_id')
             ->leftJoin('meet_cat_big as b', 'p.cat_b = b.big_id')
             ->leftJoin('meet_cat_middle as m', 'm.middle_id= p.cat_m')
@@ -202,6 +202,7 @@ class ProductModel extends \yii\db\ActiveRecord
     }
 
     /**
+     * 不用
      * 检查是否有错误信息
      * @return bool
      */
@@ -210,63 +211,204 @@ class ProductModel extends \yii\db\ActiveRecord
         $result = self::find()->where(['is_error' => 'true'])->andWhere(['disabled' => 'false'])->count();
         return $result;
     }
-
-    public function getAddProductFilter($data = [])
+    /**
+     * 获取增加／修改产品时所有的可选项
+     * @param  array  $data [description]
+     * @return [type]       [description]
+     */
+    public function getProductFilter($data = [])
     {
-        //获取订购会数据
-        $purchaseModel = new PurchaseModel;
-        $result['purchase'] = $purchaseModel->getPurchase();
-        //获取品牌数据
-        $brandModel = new BrandModel;
-        $result['brand'] = $brandModel->getBrand();
-        //色系信息
-        $schemeModel = new SchemeModel;
-        $result['scheme'] = $schemeModel->getScheme();
-        //获取尺码组
-        $result['sizeGroup'] = (new Query)->select(['size_group_code', 'group_id', 'size_group_name'])
-            ->from('meet_size_group')
-            ->all();
-        //等级表
-        $levelModel = new LevelModel;
-        $result['level'] = $levelModel->getLevel();
+        $result = Yii::$app->cache->get('add-product-filter');
+        if (empty($result)) {
+            //获取订购会数据
+            $purchaseModel = new PurchaseModel;
+            $result['purchase'] = $purchaseModel->getPurchase();
+            //获取品牌数据
+            $brandModel = new BrandModel;
+            $result['brand'] = $brandModel->getBrand();
+            //色系信息
+            $schemeModel = new SchemeModel;
+            $result['scheme'] = $schemeModel->getScheme();
+            //获取尺码组
+            $result['sizeGroup'] = (new Query)->select(['size_group_code', 'group_id', 'size_group_name'])
+                ->from('meet_size_group')
+                ->all();
+            //等级表
+            $levelModel = new LevelModel;
+            $result['level'] = $levelModel->getLevel();
 
-        //波段表
-        $waveModel = new WaveModel;
-        $result['wave'] = $waveModel->getWave();
+            //波段表
+            $waveModel = new WaveModel;
+            $result['wave'] = $waveModel->getWave();
 
-        //大分类
-        $catBigModel = new CatBigModel;
-        $result['catBig'] = $catBigModel->getList();
+            //大分类
+            $catBigModel = new CatBigModel;
+            $result['catBig'] = $catBigModel->getList();
 
-        $result['season'] = $result['catMiddle'] = $result['catSmall'] = [];
+            //颜色
+            $colorModel = new ColorModel();
+            $result['color'] = $colorModel->getColor();
+            //类型
+            $typeModel = new TypeModel();
+            $result['type'] = $typeModel->getType();
+            //中级分类
+            $result['catMiddle'] = (new Query)->select(['middle_id', 'cat_name'])
+                ->from('meet_cat_middle')
+                ->all();
+            Yii::$app->cache->set('add-product-filter', $result);
+        }
+
+        $result['season'] = $result['catSmall'] = [];
         if (!empty($data['cat_b'])) {
             //大分类含有的季节
             $result['season'] = (new Query)->select(['season_id', 'season_name'])
                 ->from('meet_season_big')
                 ->where(['big_id' => $data['cat_b']])
                 ->all();
-
-            $this->selectQueryRows("season_id, season_name", "{{season_big}}", "big_id = '{$data['cat_b']}'");
+            //源代码没有添加条件，可放置则不用放在if里面
+            // $result['catMiddle'] = (new Query)->select(['middle_id', 'cat_name'])
+            //     ->from('meet_cat_middle')
+            //     ->where(['parent_id' => $data['cat_b']])
+            //     ->all();
+            //大分类含有的小类
+            $result['catSmall'] = (new Query)->select(['small_id', 'small_cat_name AS cat_name'])
+                ->from('meet_cat_big_small')
+                ->where(['big_id' => $data['cat_b']])
+                ->all();
         }
-
-        if (!empty($data['cat_b'])) {
-            $result['catMiddle'] = $this->selectQueryRows("middle_id,cat_name", "{{cat_middle}}");
-        }
-
-        if (!empty($data['cat_b'])) {
-            $result['catSmall'] = $this->selectQueryRows("small_id,small_cat_name AS cat_name", "{{cat_big_small}}", "big_id = '{$data['cat_b']}'");
-        }
-
-        $colorModel = new Color();
-        $result['color'] = $colorModel->getColor();
-
-        $typeModel = new Type();
-        $result['type'] = $typeModel->getType();
 
         if(!empty($data['sizeGroup'])){
-            $result['size'] = $this->selectQueryRows("size_id, size_name", "{{size}}", " group_id='{$data['sizeGroup']}'");
+            //尺寸组下的尺寸
+            $result['size'] = (new Query)->select(['size_id', 'size_name'])
+                ->from('meet_size')
+                ->where(['group_id' => $data['sizeGroup']])
+                ->all();
         }
 
         return $result;
     }
+
+    /**
+     * 修改商品操作
+     * @param $param
+     * @param $moreData
+     * @param $lessData
+     * @param $serialNum
+     * @return bool
+     */
+    /**
+     * 修改商品
+     * @param  [type] $param     产品参数
+     * @param  [type] $moreData  多的尺寸
+     * @param  [type] $lessData  少的尺寸
+     * @param  [type] $serialNum 流水号
+     * @return [type]            [description]
+     */
+    public function updateProductOperation($param, $moreData, $lessData, $serialNum, $purchaseId)
+    {
+        if ($param['color_id'] == "" || $param['scheme_id'] == "") {
+            echo "<script>alert('数据出错，请重试');</script>";
+            die;
+        }
+
+        if (empty($param['size'])) {
+            echo "<script>alert('如果你不想让这个款号出现，请刷新本页后选择：下架此商品');</script>";
+            die;
+        }
+//??? 更新的不用判断,没必要判断一定是为空的
+        //再次判断款号与色号是否已存在
+        // $query_model_color_exist = self::find()
+        //     ->select(['serial_num'])
+        //     ->where(['model_sn' => $param['modelSn']])
+        //     ->andWhere(['color_id' => $param['color_id']])
+        //     ->andWhere(['<>', 'serial_num', $serialNum])
+        //     ->asArray()
+        //     ->one();
+
+        // if ($query_model_color_exist) {
+
+        //     $this->redirect(['/order/product/update', 'serial_num' => $serialNum, 'pruchase_id' => $purchaseId]);
+        //     die;
+        // }
+
+        $param['size'] = $moreData;
+        $sql_add = "";
+
+        //新增尺码数据
+        if (!empty($moreData)) {
+            $sql_add .= $this->_addOnlyAddProducts($param, $moreData, $serialNum, $purchaseId);
+        }
+
+        //下架该尺码
+        if (!empty($lessData)) {
+             $this->_updateProducts($lessData, $serialNum);
+        }
+
+        //执行上面返回的sql
+        if (!empty($sql_add)) {
+            $this->ModelExecute($sql_add);
+        }
+
+        //修改其他商品基本数据
+        if ($this->_updateAllSerialNumProduct($param, $serialNum)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    private function _addOnlyAddProducts($param, $moreData, $serialNum, $purchaseId)
+    {
+        //检查该新增的商品在数据库中是否存在，如果存在就直接把 disabled 修改为 false就好
+        $nowTime = time();
+        foreach ($moreData as $key => $value) {
+            $productObj = self::find()
+            ->where(['serial_num' => $serialNum])
+            ->andWhere(['purchase_id' => $purchaseId])
+            ->andWhere(['size_id' => $value])
+            ->one();
+            if (!empty($productObj->product_id)) {
+                if ($productObj->is_error == 'false') {
+                    $productObj->disabled = 'false';
+                    if (!$productObj->save()) {
+                        var_dump('更新失败', $productObj->errors);exit;
+                    }
+                    //增加修改日志。等待添加
+                    
+                }
+                unset($moreData[$key]);
+            }
+
+        }
+        if (empty($moreData)) {
+            return '';
+        }
+        if(empty($param['type'])){
+            $param['type'] = 0;
+        }
+        // 色号转换。
+        $color_no = (new ColorModel)->select(['color_no'])
+            ->where(['color_id' => $param['color_id']])
+            ->asArray()
+            ->one();
+        //当上传图片为空，给定默认值
+        if (empty($param['image'])) {
+            $param['image'] = "/images/" . $param['modelSn'] . "_" . $color_no . ".jpg";
+        }
+        //检验param是否该填的都填了，前端判断了这里就可以不用判断了  
+
+
+        //款号
+        $style_sn = $param['modelSn'] . sprintf("%04d", $color_no);
+
+        //查询此款款号的最大货号（以便生成新的货号）
+    }
+
+
+
+
+
+
+
+
+
 }

@@ -9,8 +9,6 @@ use frontend\modules\desktop\models\TableModel;
  */
 class DefaultController extends BaseController
 {
-	//用最外层的layout
-	public $layout = '/backend';
     /**
      * 后台首页
      * @return string

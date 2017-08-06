@@ -60,7 +60,7 @@ class WaveModel extends \yii\db\ActiveRecord
 
     public function getWave()
     {
-        $result = self::find()->select(['wave_id, wave_name'])->asArray()->all();
+        $result = self::find()->select(['wave_id', 'wave_name'])->asArray()->all();
         return $result;
     }
 }

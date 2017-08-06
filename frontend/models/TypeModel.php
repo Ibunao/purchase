@@ -54,4 +54,9 @@ class TypeModel extends \yii\db\ActiveRecord
             'p_order' => 'P Order',
         ];
     }
+    public function getType()
+    {
+        $result = self::find()->select(['type_id', 'type_name'])->asArray()->all();
+        return $result;
+    }
 }

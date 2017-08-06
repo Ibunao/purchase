@@ -39,8 +39,6 @@ class AdminController extends Controller
                 $loginInfo = [
                     'user_id'=>$user['user_id'],
                     'name' => $name,
-                    'super'=>$user['super'],
-                    'role'=>$user['role'],
                 ];
                 $session->set('login_in',$loginInfo);
                 $this->redirect(['desktop/default/index']);

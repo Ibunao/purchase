@@ -182,14 +182,10 @@ $this->params['breadcrumbs'] = [
         </div>
     </form>
 <div class="form-group">
-    <a href="<?=Url::to(['order/product/add']) ;?>"><button class="btn btn-default btn-sm">添加商品</button></a>
-    <a href="<?=Url::to(['order/product/import']) ;?>"><button class="btn btn-default btn-sm">全新商品导入</button></a>
-    <a href="<?=Url::to(['order/product/export']) ;?>"><button class="btn btn-default btn-sm">导出商品</button></a>
-    <a href="<?=Url::to(['order/product/check']) ;?>"><button class="btn btn-default btn-sm">检查错误</button></a>
-    <?php if($is_error){ ?>
-        <a href="<?=Url::to(['order/product/dealerror']) ;?>"><button class="btn btn-sm btn-success">一键处理错误商品</button></a>
-        <b style="font-size: 38px">☜</b><b>出现这个请点击处理，否则系统会出问题</b>
-    <?php } ?>
+    <a href="<?=Url::to(['/order/product/add']) ;?>"><button class="btn btn-default btn-sm">添加商品</button></a>
+    <a href="<?=Url::to(['/order/product/import']) ;?>"><button class="btn btn-default btn-sm">全新商品导入</button></a>
+    <a href="<?=Url::to(['/order/product/export']) ;?>"><button class="btn btn-default btn-sm">导出商品</button></a>
+    <a href="<?=Url::to(['/order/product/check']) ;?>"><button class="btn btn-default btn-sm">检查错误</button></a>
 </div>
 <table class="table table-striped table-bordered table-hover" style="margin-top: 5px;">
     <caption class="text-left">商品列表</caption>
@@ -199,6 +195,7 @@ $this->params['breadcrumbs'] = [
         <th width="40">操作</th>
         <th width="60">流水号</th>
         <th width="60">款号</th>
+        <th width="30">订货会</th>
         <th width="100">品名</th>
         <th width="100">大类</th>
         <th width="100">中类</th>
@@ -216,11 +213,12 @@ $this->params['breadcrumbs'] = [
     <tr>
         <td width="25"><input type="checkbox"></td>
         <td width="40">
-            <a href="<?=Url::to(['order/product/update', 'serial_num' => $v['serial_num']]) ;?>"><i class="icon-pencil"></i></a>
-       &nbsp;&nbsp;&nbsp;&nbsp;<a href="<?=Url::to(['order/product/copy', 'serial_num' => $v['serial_num']]) ;?>"><i class="icon-copy"></i></a>
+            <a href="<?=Url::to(['/order/product/update', 'serial_num' => $v['serial_num'], 'purchase_id' => $v['purchase_id']]) ;?>"><i class="icon-pencil"></i></a>
+       &nbsp;&nbsp;&nbsp;&nbsp;<a href="<?=Url::to(['/order/product/copy', 'serial_num' => $v['serial_num']]) ;?>"><i class="icon-copy"></i></a>
         </td>
         <td width="60"><?= $v['serial_num'] ?></td>
         <td width="100"><?= $v['model_sn'] ?></td>
+        <td width="30"><?= $v['purchase_id'] == 1 ? 'A' : 'B'; ?></td>
         <td width="100"><?= $v['name'] ?></td>
         <td width="100"><?= $v['cat_name'] ?></td>
         <td width="100"><?= $v['cat_middle'] ?></td>

@@ -25,7 +25,6 @@ use frontend\helpers\IoXls;
  */
 class DefaultController extends BaseController
 {
-	public $layout = '/backend';
     /**
      * 商品订单汇总
      * @return [type] [description]
@@ -200,10 +199,11 @@ class DefaultController extends BaseController
         $select_option['scheme'] = $scheme->getList();
         //价格带：
         $select_option['price_level'] = ParamsClass::$priceLevel;
+        //商品类型
         $type = new TypeModel();
         $select_option['ptype'] = $type->getList();
 
-        Yii::$app->cache->set('select_option',$select_option,7200);
+        Yii::$app->cache->set('select_option',$select_option,60*60*24*5);
         return $select_option;
     }
 

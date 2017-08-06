@@ -70,13 +70,11 @@ class OrderModel extends \yii\db\ActiveRecord
             ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
             ->leftJoin('meet_size as s', 's.size_id = p.size_id')
             ->leftJoin('meet_type as tp', 'p.type_id = tp.type_id');
-        $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 's.size_name', 'tp.type_name', 'oi.order_id as order_id'];
+        $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 's.size_name', 'tp.type_name', 'oi.order_id', 'c.type'];
 
         if (!empty($params['purchase'])) {
             $query->andWhere(['c.purchase_id' => $params['purchase']]);
             $select = ArrayHelper::merge($select, ['o.purchase_id', 'o.customer_id', 'c.type']);
-        }else{
-            $select = ArrayHelper::merge($select, ['c.type']);
         }
         if (!empty($params['type'])) {
             $query->andWhere(['c.type' => $params['type']]);
@@ -85,22 +83,22 @@ class OrderModel extends \yii\db\ActiveRecord
             $query->andWhere(['p.style_sn' => $params['style_sn']]);
         }
         if (!empty($params['cat_big'])) {
-            $query->andWhere(['p.cat_b' => $params['cat_big']])
-                ->leftJoin('meet_cat_big as cb', 'cb.big_id = p.cat_b');
-            $select = ArrayHelper::merge($select, ['cb.cat_name as cat_big_name']);
+            $query->andWhere(['p.cat_b' => $params['cat_big']]);
+            //     ->leftJoin('meet_cat_big as cb', 'cb.big_id = p.cat_b');
+            // $select = ArrayHelper::merge($select, ['cb.cat_name as cat_big_name']);
         }
         if (!empty($params['cat_middle'])) {
-            $query->andWhere(['p.cat_m' => $params['cat_middle']])
-                ->leftJoin('meet_cat_middle as cm', 'cm.middle_id = p.cat_m');
-            $select = ArrayHelper::merge($select, ['cm.cat_name as cat_middle_name']);
+            $query->andWhere(['p.cat_m' => $params['cat_middle']]);
+            //     ->leftJoin('meet_cat_middle as cm', 'cm.middle_id = p.cat_m');
+            // $select = ArrayHelper::merge($select, ['cm.cat_name as cat_middle_name']);
         }
         if (!empty($params['cat_small'])) {
-            $query->andWhere(['p.cat_s' => $params['cat_small']])
-                ->leftJoin(['meet_cat_big_small as cs', 'cs.small_id = p.cat_s']);
-            $select = ArrayHelper::merge($select, ['cs.small_cat_name as cat_small_name']);
-            if(!empty($params['cat_big'])){
-                $query->andWhere(['cs.big_id' => $params['cat_big']]);
-            }
+            $query->andWhere(['p.cat_s' => $params['cat_small']]);
+            //     ->leftJoin(['meet_cat_big_small as cs', 'cs.small_id = p.cat_s']);
+            // $select = ArrayHelper::merge($select, ['cs.small_cat_name as cat_small_name']);
+            // if(!empty($params['cat_big'])){
+            //     $query->andWhere(['cs.big_id' => $params['cat_big']]);
+            // }
         }
 
         if (!empty($params['season'])) {
@@ -155,16 +153,6 @@ class OrderModel extends \yii\db\ActiveRecord
         }
         $query->select($select);
         $list = $query->all();
-        // var_dump($list);exit;
-        // foreach($list as $key => $val){
-        //     //只查最新的价格
-        //     $check = $this->getCustomerNewCount($val['order_id'], true);
-        //     $list[$key]['cost_item'] = $check;
-        //     $list[$key]['is_diff'] = false;
-        //     if($check != $val['count_all']){
-        //         $list[$key]['is_diff'] = true;
-        //     }
-        // }
         return array('item' => $list, 'pagination' => $pagination);
     }
     //获取最新订单商品价格
@@ -245,6 +233,8 @@ class OrderModel extends \yii\db\ActiveRecord
 
         $result = $query->all();
 
+        $return['self'] = 0;
+        $return['customer'] = 0;
         if ($result) {
             foreach ($result as $v) {
                 if ($v['type'] == '直营') {
@@ -253,9 +243,6 @@ class OrderModel extends \yii\db\ActiveRecord
                     $return['customer'] = $v['count'];
                 }
             }
-        } else {
-            $return['self'] = 0;
-            $return['customer'] = 0;
         }
         return $return;
     }
