@@ -403,10 +403,121 @@ class ProductModel extends \yii\db\ActiveRecord
         //查询此款款号的最大货号（以便生成新的货号）
     }
 
+    /**
+     * 前台查询用户订单状态
+     * @param  [type] $customerId 用户id
+     * @return [type]             [description]
+     */
+    public function checkStatus($customerId)
+    {
+        $result = (new Query)->select(['status'])
+            ->from('meet_order')
+            ->where(['customer_id' => $customerId])
+            ->all();
+    }
+    /**
+     * 前台商品搜索
+     * @param $conArr  搜索条件
+     * @param $serial   搜索型号
+     * @param $params   小条件
+     * @param int $price  价格排序
+     * @param int $page  页码
+     * @param int $pagesize
+     * @return array
+     */
+    public function newitems($conArr, $serial, $params, $price = 1, $page = 1, $pagesize = 8){
+        
+        //根据输入框的长度来判断是否是 model_sn型号 还是 serial_num 流水号查询 出去重的 style_sn 款号
+        if(strlen($serial) >4){
+            //获取查询的去重的款号 的型号  
+            $row = self::find()->select(['style_sn'])
+                ->where(['like', 'model_sn', $serial.'%', false])//右模糊
+                ->andWhere(['disabled' => 'false'])
+                ->andWhere(['is_down' => 0])
+                ->andWhere(['purchase_id' => $params['purchase_id']])
+                ->distinct()
+                ->all();
 
+            if (empty($row)) return [];
+            //根据查询出的款号 和 搜索条件 获取商品的详细信息
+            $items = $this->listStyleSn($row, $params, $conArr);
+        }else{
+            if (!empty($serial)) {
+                //流水号
+                $row = self::find()->select(['style_sn'])
+                ->where(['serial_num', $serial])
+                ->andWhere(['disabled' => 'false'])
+                ->andWhere(['is_down' => 0])
+                ->andWhere(['purchase_id' => $params['purchase_id']])
+                ->distinct()
+                ->all();
 
+                if (empty($row)) return [];
+                $items = $this->listStyleSn($row, $params, $conArr);
+            }else{
 
+                $style_sn = '';
+                $items = $this->listSerial($style_sn, $params, $conArr);
+            }
+        }
+        //人气排序 1:降序  2:升序
+        $hits_sort = [];
+        if ($params['hits'] && !empty($items)) {
+            //根据下单数量来定义人气
+            $order_item_list = (new Query)->select(['style_sn', 'SUM(nums) AS num'])
+            ->from('meet_order_items')
+            ->where(['disabled' => 'false'])
+            ->groupBy('style_sn')
+            ->all();
+            foreach ($order_item_list as $v) {
+                $order_item_list[$v['style_sn']] = $v['num'];
+            }
 
+            foreach ($items as $k => $v) {
+                $num = isset($order_item_list[$v['style_sn']]) ? $order_item_list[$v['style_sn']] : 0;
+                $items[$k]['hit_num'] = $num;
+                $hits_sort[$k] = $num;
+            }
+
+            $sort2 = $params['hits'] == 2 ? SORT_ASC : SORT_DESC;
+            array_multisort($hits_sort, $sort2, $items);
+        }
+
+        //价格升降排序 1:升序  2:降序
+        $price_sort = [];
+        if ($price && !empty($items)) {
+            foreach ($items as $k => $v) {
+                $price_sort[$k] = $v['cost_price'];
+            }
+            $sort1 = $price == 2 ? SORT_ASC : SORT_DESC;
+            array_multisort($price_sort, $sort1, $items);
+        }
+        //这里可以根据查询条件进行缓存的，这样分页太差劲了
+        //分页超出
+        if (($page - 1) * $pagesize > count($items)) return [];
+        //从数组中取出指定分页需要的数据
+        return array_slice($items, ($page - 1) * $pagesize, $pagesize);
+    }
+
+    /**
+     * 缓存指定订购会所有产品 包括下架的 并根据流水号合并
+     * @return [type] [description]
+     */
+    public function productListCache()
+    {
+        $purchaseId = Yii::$app->session->get('purchase_id');
+        $list = Yii::$app->cache->get('all-product-list-without-down-' . $purchaseId);
+        if (empty($list)) {
+            $list = self::find()
+                ->where(['purchase_id' => $purchaseId])
+                ->andWhere(['disabled' => 'false'])
+                ->orderBy(['serial_num' => SORT_ASC])
+                ->asArray()
+                ->all();
+            Yii::$app->cache->set('all-product-list-without-down-' . $purchaseId, $list, 86400);
+        }
+        return $list;
+    }
 
 
 

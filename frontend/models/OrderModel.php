@@ -266,4 +266,98 @@ class OrderModel extends \yii\db\ActiveRecord
             $query->andWhere(['c.type' => $params['type']]);
         }
     }
+
+    /**
+     * FBaseController使用+1
+     * 获取用户的订单详情 
+     * 添加商品订单的时候注意清缓存
+     * @param  [type] $purcheaseId 订货会id
+     * @param  [type] $customerId  用户id
+     * @return [type]              [description]
+     */
+    public function orderItems($purcheaseId, $customerId)
+    {   
+        $cacheName = 'order-items-' . $purchaseId . '_' . $customerId;
+        $model = Yii::$app->cache->get($cacheName);
+
+        if (!$model) {
+            $model = $this->orderCache();
+            Yii::$app->cache->set($cacheName, $model);
+        }
+        //原代码有的，可以在更新状态的时候直接删除缓存就行了
+        // else{
+        //     //如果订单已经存在 
+        //     //获取订单状态
+        //     $orderRow = self::find()
+        //         ->select(['status'])
+        //         ->where(['purchase_id' => $purcheaseId])
+        //         ->andWhere(['customer_id' => $customerId])
+        //         ->asArray()
+        //         ->one();
+
+        //     if ($orderRow['status'] != $model['order_row']['status']) {
+        //         $model = $this->orderCache($purcheaseId, $customerId);
+        //     }
+        // }
+        return $model;
+    }
+    /**
+     * 要缓存的订单信息
+     * @param  [type] $purcheaseId 订购会id
+     * @param  [type] $customerId  用户id
+     * @return [type]              [description]
+     */ 
+    public function orderCache($purcheaseId, $customerId)
+    {
+        //查询生效的订单
+        $model['order_row'] = self::find()
+            ->where(['purchase_id' => $purcheaseId])//可以不添加，因为一个用户就对应了订货会类型
+            ->andWhere(['customer_id' => $customerId])
+            ->andWhere(['disabled' => 'false'])
+            ->asArray()
+            ->one();
+        if (empty($model['order_row'])) {
+            return ['order_row' => [], 'item_list' => []];
+        }
+        $itemList = (new Query)->from('meet_order_items')
+            ->where(['order_id' => $model['order_row']['order_id']])
+            ->andWhere(['disabled' => 'false'])
+            ->all();
+        $totalNum = 0;
+        $costItem = 0.00;
+        if (empty($itemList)) {
+            //商品总数量
+            $model['order_row']['total_num'] = $total_num;
+
+            return ['order_row' => $model['order_row'], 'item_list' => []];
+        }
+        $isDown = $this->getProductIsDown();
+        foreach ($itemList as $item) {
+            $model['item_list'][$item['product_id']] = $item;
+            $model['item_list'][$item['product_id']]['is_down'] = $isDown[$item['product_id']];
+
+            $totalNum += $item['nums'];
+        }
+        $model['order_row']['total_num'] = $total_num;
+
+        return $model;
+    }
+    /**
+     * 产品是否下架
+     * @return [type] [description]
+     */
+    public function getProductIsDown()
+    {
+        $purcheaseId = Yii::$app->session->get('purchase_id');
+        $result = Yii::$app->cache->get("product_list_is_down_". $purcheaseId);
+        if(empty($result)){
+            $product = new ProductModel();
+            $res = $product->productListCache();
+            foreach($res as $val){
+                $result[$val['product_id']] = $val['is_down'];
+            }
+            Yii::$app->cache->set("product_list_is_down_".Yii::app()->session['purchase_id'], $result, 86400);
+        }
+        return $result;
+    }
 }

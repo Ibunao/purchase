@@ -13,7 +13,6 @@ class BaseController extends Controller
     //分页条数
     public $pagesize = 15;
     public $ActList = [];
-    //用最外层的layout
     public $layout = '/backend';
     //关闭csrf
     public $enableCsrfValidation = false;

@@ -4,6 +4,7 @@ namespace frontend\controllers;
 use Yii;
 use yii\web\Controller;
 use frontend\models\AdminUsers;
+use frontend\models\ProductModel;
 /**
  * Admin controller
  */
@@ -18,7 +19,9 @@ class TestController extends Controller
      */
     public function actionTest()
     {
-        var_dump($_POST);
+        $models = new ProductModel;
+        $result = $models->getOrderInfo('1', '10000002');
+        var_dump($result);
     }
     public function actionGo()
     {

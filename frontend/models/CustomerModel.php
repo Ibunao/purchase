@@ -111,6 +111,15 @@ class CustomerModel extends \yii\db\ActiveRecord
             'login' => 'Login',
         ];
     }
+
+    public function login($name, $password)
+    {
+        return self::find()
+            ->where(['code' => $name])
+            ->andWhere(['password' => md5(md5($password))])
+            ->andWhere(['disabled' => 'false'])
+            ->one();
+    }
     public function getList()
     {
         return self::find()
