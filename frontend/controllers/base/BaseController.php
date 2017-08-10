@@ -10,9 +10,7 @@ use yii\web\Controller;
  */
 class BaseController extends Controller
 {
-    //分页条数
-    public $pagesize = 15;
-    public $ActList = [];
+
     public $layout = '/backend';
     //关闭csrf
     public $enableCsrfValidation = false;

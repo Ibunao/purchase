@@ -29,14 +29,18 @@ class TableModel
 	 * @param  string $today 
 	 * @return [type]        [description]
 	 */
-	public function getAllOrder($finish = '')
+	public function getAllOrder($status1, $status2 = '')
 	{
-		//目前只有两种状态 finish已审核完成 active 正常订单  
-		$row = (new Query)
+		//目前用三种状态 finish已审核完成 active 正常订单  confirm确认订单
+		$query = (new Query)
 			->from('meet_order')
-			->where(['disabled' => 'false'])
-			->andFilterWhere(['status' => $finish])
-			->sum('cost_item');
+			->where(['disabled' => 'false']);
+		if (empty($status2)) {
+			$query->andWhere(['status' => $status1]);
+		}else{
+			$query->andWhere(['or', "status='".$status1."'", "status='".$status2."'"]);
+		}
+		$row = $query->sum('cost_item');
 		return $row;
 	}
 	/**
@@ -56,7 +60,7 @@ class TableModel
 	/**
 	 * 不同类型用户在不同状态下的订单金额
 	 * @param  string $type 客户类型 客户和直营
-	 * @param  string $status 状态 finish、active、finish
+	 * @param  string $status 状态 finish、active、confirm
 	 * @return [type]       [description]
 	 */
 	public function getOrderNum($type='', $status='')

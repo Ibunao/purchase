@@ -120,13 +120,19 @@ class CustomerModel extends \yii\db\ActiveRecord
             ->andWhere(['disabled' => 'false'])
             ->one();
     }
-    public function getList()
+
+    static function getList()
     {
-        return self::find()
-            ->select(['type',])
-            ->groupBy(['type'])
-            ->asArray()
-            ->all();
+        $result = Yii::$app->cache->get('customer_type_list');
+        if (empty($result)) {
+            $result = self::find()
+                ->select(['type',])
+                ->groupBy(['type'])
+                ->asArray()
+                ->all();
+            Yii::$app->cache->set('customer_type_list', $result);
+        }
+        return $result;
     }
 
     /**

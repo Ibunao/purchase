@@ -6,6 +6,7 @@ use Yii;
 use yii\db\Query;
 use yii\helpers\ArrayHelper;
 use yii\data\Pagination;
+use frontend\config\ParamsClass;
 /**
  * This is the model class for table "{{%order}}".
  *
@@ -61,23 +62,27 @@ class OrderModel extends \yii\db\ActiveRecord
         ];
     }
     //根据条件进行搜索
-    public function orderList($pagesize, $params)
+    public function orderList($params)
     {
         $query = (new Query())->from('meet_order_items as oi')
             ->where(['oi.disabled' => 'false'])
-            ->leftJoin('meet_order as o', 'o.order_id = oi.order_id')
-            ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
-            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
-            ->leftJoin('meet_size as s', 's.size_id = p.size_id')
-            ->leftJoin('meet_type as tp', 'p.type_id = tp.type_id');
-        $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 's.size_name', 'tp.type_name', 'oi.order_id', 'c.type'];
-
+            // ->leftJoin('meet_order as o', 'o.order_id = oi.order_id')
+            // ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id');
+            // ->leftJoin('meet_size as s', 's.size_id = p.size_id')
+            // ->leftJoin('meet_type as tp', 'p.type_id = tp.type_id');
+        // $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 's.size_name', 'tp.type_name', 'oi.order_id', 'c.type'];
+        //customer_id暂时没用也就是c.type
+        $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 'p.size_id', 'p.type_id', 'oi.order_id'];
         if (!empty($params['purchase'])) {
-            $query->andWhere(['c.purchase_id' => $params['purchase']]);
-            $select = ArrayHelper::merge($select, ['o.purchase_id', 'o.customer_id', 'c.type']);
+            $query->andWhere(['or', "p.purchase_id='".$params['purchase']."'", "p.purchase_id='".Yii::$app->params['purchaseAB']."'"]);
+            // $select = ArrayHelper::merge($select, ['o.purchase_id', 'o.customer_id', 'c.type']);
         }
         if (!empty($params['type'])) {
-            $query->andWhere(['c.type' => $params['type']]);
+
+            $query->leftJoin('meet_order as o', 'o.order_id = oi.order_id')
+            ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
+            ->andWhere(['c.type' => $params['type']]);
         }
         if (!empty($params['style_sn'])) {
             $query->andWhere(['p.style_sn' => $params['style_sn']]);
@@ -142,17 +147,18 @@ class OrderModel extends \yii\db\ActiveRecord
         }
         $countQuery = clone $query;
         //获取总数量
-        $count = count($countQuery->select(['sum(oi.nums)as nums'])->all());
+        // $count = count($countQuery->select(['sum(oi.nums)as nums'])->all());
         $pagination = '';
         if (empty($params['download'])) {
-            //分页
-            $pagination = new Pagination(['totalCount' => $count, 'pageSize' => $pagesize]);
+            //分页  改用固定值，可以减少查询总数的时间
+            $pagination = new Pagination(['totalCount' => 1000, 'pageSize' => ParamsClass::$pageSize]);
 
             $query->offset($pagination->offset)
                 ->limit($pagination->limit);
         }
         $query->select($select);
         $list = $query->all();
+        var_dump($list);exit;
         return array('item' => $list, 'pagination' => $pagination);
     }
     //获取最新订单商品价格

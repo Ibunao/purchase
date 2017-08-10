@@ -3,7 +3,7 @@
 namespace frontend\models;
 
 use Yii;
-
+use yii\helpers\ArrayHelper;
 /**
  * 大分类表
  * This is the model class for table "{{%cat_big}}".
@@ -14,6 +14,16 @@ use Yii;
  */
 class CatBigModel extends \yii\db\ActiveRecord
 {
+    public function behaviors()
+    {
+        return  ArrayHelper::merge(parent::behaviors(),
+        [
+            [
+                'class' => 'frontend\behaviors\PublicFind',
+                'object' => $this,
+            ],
+        ]);
+    }
     /**
      * @inheritdoc
      */
@@ -45,12 +55,17 @@ class CatBigModel extends \yii\db\ActiveRecord
             'p_order' => 'P Order',
         ];
     }
-    public function getList()
+    /**
+     * 分类id对应name
+     * @return [type] [description]
+     */
+    static function getCatBig()
     {
-        return self::find()->asArray()->all();
-    }
-    public function getCatBig()
-    {
-        return self::find()->select(['big_id', 'cat_name'])->asArray()->all();
+        $result = Yii::$app->cache->get('cat_big_id_name');
+        if (empty($result)) {
+            $result = self::find()->select(['big_id', 'cat_name'])->asArray()->all();
+            Yii::$app->cache->set('cat_big_id_name', $result);
+        }
+        return $result;
     }
 }

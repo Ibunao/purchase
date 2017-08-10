@@ -15,3 +15,7 @@ $config = yii\helpers\ArrayHelper::merge(
 );
 
 (new yii\web\Application($config))->run();
+//全局设置默认分页
+\Yii::$container->set('yii\widgets\LinkPager', [
+    'maxButtonCount' => 5,
+]);

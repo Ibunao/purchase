@@ -3,7 +3,7 @@
 namespace frontend\models;
 
 use Yii;
-
+use yii\helpers\ArrayHelper;
 /**
  * 中级分类
  * This is the model class for table "{{%cat_middle}}".
@@ -16,6 +16,16 @@ use Yii;
  */
 class CatMiddleModel extends \yii\db\ActiveRecord
 {
+    public function behaviors()
+    {
+        return  ArrayHelper::merge(parent::behaviors(),
+        [
+            [
+                'class' => 'frontend\behaviors\PublicFind',
+                'object' => $this,
+            ],
+        ]);
+    }
     /**
      * @inheritdoc
      */
@@ -49,17 +59,17 @@ class CatMiddleModel extends \yii\db\ActiveRecord
             'p_order' => 'P Order',
         ];
     }
-    public function getList()
-    {
-        return self::find()->asArray()->all();
-    }
     static function getCatMiddle($parentId)
     {
-        $result = self::find()
-            ->select(['middle_id', 'cat_name'])
-            ->where(['parent_id' => $parentId])
-            ->asArray()
-            ->all();
+        $result = Yii::$app->cache->get('cat_middle_id_name');
+        if (empty($result)) {
+            $result = self::find()
+                ->select(['middle_id', 'cat_name'])
+                ->where(['parent_id' => $parentId])
+                ->asArray()
+                ->all();
+            Yii::$app->cache->set('cat_middle_id_name', $result);
+        }
         return $result;
     }
 }

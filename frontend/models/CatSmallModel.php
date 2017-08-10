@@ -60,11 +60,15 @@ class CatSmallModel extends \yii\db\ActiveRecord
     }
     static function getCatSmall($parentId)
     {
-        $result = self::find()
-            ->select(['small_id', 'cat_name'])
-            ->where(['parent_id' => $parentId])
-            ->asArray()
-            ->all();
+        $result = Yii::$app->cache->get('cat_small_id_name');
+        if (empty($result)) {
+            $result = self::find()
+                ->select(['small_id', 'cat_name'])
+                ->where(['parent_id' => $parentId])
+                ->asArray()
+                ->all();
+            Yii::$app->cache->set('cat_small_id_name', $result);
+        }
         return $result;
     }
 }

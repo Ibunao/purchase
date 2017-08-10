@@ -31,13 +31,12 @@ class DefaultController extends BaseController
      */
     public function actionIndex()
     {
-    	$select_option = Yii::$app->cache->get('select_option');
+    	$select_option = Yii::$app->cache->get('b_product_select_option');
 
     	if(empty($select_option))
     	{
     	    $select_option = $this->tables();
     	}
-        // var_dump($select_option);exit;
     	$pageIndex = Yii::$app->request->get('page', 1);
 
     	$params= Yii::$app->request->get('param', []);
@@ -45,7 +44,7 @@ class DefaultController extends BaseController
     	$params['page']= $pageIndex;
     	$order = new OrderModel();
     	// 订单的详细信息以及搜索功能
-    	$result = $order->orderList($this->pagesize,$params);
+    	$result = $order->orderList($params);
         // var_dump($result);exit;
         //下载
         if(!empty($params['download'])){
@@ -168,42 +167,29 @@ class DefaultController extends BaseController
      */
     public function tables(){
         //订货会：
-        $purchase = new PurchaseModel();
-        $select_option['purchase'] = $purchase->find()->asArray()->all();
-
+        $select_option['purchase'] = PurchaseModel::getPurchase();
         //（渠道）客户类型：
-        $customer = new CustomerModel();
-        $select_option['customer'] = $customer->getList();
-
+        $select_option['customer'] = CustomerModel::getList();
         //大类：
-        $cat_big = new CatBigModel();
-        $select_option['cat_big'] = $cat_big->getList();
+        $select_option['cat_big'] = (new CatBigModel)->getList();
         //中类：
-        $cat_middle = new CatMiddleModel();
-        $select_option['cat_middle'] = $cat_middle->getList();
+        $select_option['cat_middle'] = (new CatMiddleModel)->getList();
         //小类：
-        $cat_small = new CatSmallModel();
-        $select_option['cat_small'] = $cat_small->getList();
+        $select_option['cat_small'] = (new CatSmallModel)->getList();
         //季节：
-        $season = new SeasonModel();
-        $select_option['season'] = $season->getList();
-
+        $select_option['season'] = (new SeasonModel)->getList();
         //波段：
-        $wave = new WaveModel();
-        $select_option['wave'] = $wave->getList();
+        $select_option['wave'] = (new WaveModel)->getList();
         //等级：
-        $level = new LevelModel();
-        $select_option['level'] = $level->getList();
+        $select_option['level'] = (new LevelModel)->getList();
         //色系：
-        $scheme = new SchemeModel();
-        $select_option['scheme'] = $scheme->getList();
+        $select_option['scheme'] = (new SchemeModel)->getList();
         //价格带：
         $select_option['price_level'] = ParamsClass::$priceLevel;
         //商品类型
-        $type = new TypeModel();
-        $select_option['ptype'] = $type->getList();
+        $select_option['ptype'] = (new TypeModel)->getList();
 
-        Yii::$app->cache->set('select_option',$select_option,60*60*24*5);
+        Yii::$app->cache->set('b_product_select_option', $select_option, 60*60*24*5);
         return $select_option;
     }
 

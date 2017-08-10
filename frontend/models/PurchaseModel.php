@@ -46,7 +46,7 @@ class PurchaseModel extends \yii\db\ActiveRecord
         ];
     }
     //获取订货会类型
-    public function getPurchase(){
+    static function getPurchase(){
         $result = Yii::$app->cache->get("purchase");
         if(empty($result)){
             $result = self::find()->asArray()->all();
