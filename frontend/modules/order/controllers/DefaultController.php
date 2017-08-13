@@ -51,7 +51,6 @@ class DefaultController extends BaseController
             $data = [];
     	    if(!empty($result['item'])){
     	        $product_id= [];
-                
                 //订单总数量
                 $nums = 0;
                 //订单总价格。
@@ -120,10 +119,16 @@ class DefaultController extends BaseController
                 $nums = 0;
                 //订单总价格。
                 $amount = 0;
+                foreach ($result['item'] as $key => $value) {
+                    $order_type = $order->customerOrderByStyleSnCount($v['style_sn'], $params);
+                    
+                }
     	        foreach($result['item'] as $k=>$v){
     	            $product_id[] = $v['product_id'];
-    	            $order_type = $order->customerOrderByStyleSnCount($v['style_sn'],$params);
+    	            $order_type = $order->customerOrderByStyleSnCount($v['style_sn'], $params);
+                    //加盟订货数
     	            $result['item'][$k]['customer'] = $order_type['customer'];
+                    //自营订货数
     	            $result['item'][$k]['self'] = $order_type['self'];
     	            foreach($select_option['cat_big'] as $cat_big){
     	                if($cat_big['big_id'] == $v['cat_b'])

@@ -68,7 +68,7 @@ class TableModel
 		$row = (new Query)
 			->from('meet_order as o')
 			->leftJoin('meet_customer as c', 'c.customer_id=o.customer_id')
-			->where(['c.disabled' => 'false'])
+			->where(['o.disabled' => 'false'])
 			->andFilterWhere(['c.type' => $type])
 			->andFilterWhere(['o.status' => $status])
 			->sum('o.cost_item');

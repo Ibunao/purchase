@@ -19,7 +19,7 @@ return [
         ],
         'db' => [
             'class' => 'yii\db\Connection',
-            'dsn' => 'mysql:host=127.0.0.1;dbname=purchase1',
+            'dsn' => 'mysql:host=127.0.0.1;dbname=purchase3',
             'username' => 'root',
             'password' => '159753',
             'charset' => 'utf8',

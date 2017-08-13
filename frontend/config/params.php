@@ -156,5 +156,5 @@ return [
         '35' => '意向客户',
     ),
     //同时属于AB订货会的订货会id
-    purchaseAB => 3,
+    'purchaseAB' => 3,
 ];
