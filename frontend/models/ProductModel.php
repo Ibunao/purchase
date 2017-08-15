@@ -193,8 +193,8 @@ class ProductModel extends \yii\db\ActiveRecord
             ->select(['p.purchase_id', 'p.serial_num', 'p.model_sn', 'p.name', 'b.cat_name', 'm.cat_name AS cat_middle', 'p.is_down', 's.small_cat_name', 'c.color_name', 'p.cost_price'])
             ->leftJoin('meet_color as c', 'p.color_id = c.color_id')
             ->leftJoin('meet_cat_big as b', 'p.cat_b = b.big_id')
-            ->leftJoin('meet_cat_middle as m', 'm.middle_id= p.cat_m')
-            ->leftJoin('meet_cat_big_small as s', 'p.cat_s=s.small_id');
+            ->leftJoin('meet_cat_middle as m', 'm.middle_id = p.cat_m')
+            ->leftJoin('meet_cat_big_small as s', 'p.cat_s = s.small_id');
         $query->offset($pagination->offset)
             ->limit($pagination->limit);
         $result = $query->asArray()->all();
@@ -519,7 +519,83 @@ class ProductModel extends \yii\db\ActiveRecord
         return $list;
     }
 
+    /**
+     * 使用此方法的方法
+     * order/default/dialogue 
+     *
+     * 
+     * 根据款号查询基本信息
+     * @param  string $style_sn [description]
+     * @return [type]           [description]
+     */
+    public function getList($style_sn = '')
+    {
+        $query = new Query;
+        $result = $query->select(['p.name', 'cb.cat_name as big_name', 'cs.cat_name as small_name', 'season.season_name', 'scheme.scheme_name', 
+        'p.img_url', 'p.cost_price', 'color.color_name', 'p.style_sn', 'p.product_sn', 'p.memo'])
+        ->from('meet_product as p')
+        ->leftJoin('meet_cat_big as cb', 'cb.big_id = p.cat_b')
+        ->leftJoin('meet_cat_small as cs', 'cs.small_id = p.cat_s')
+        ->leftJoin('meet_scheme as scheme', 'scheme.scheme_id = p.scheme_id')
+        ->leftJoin('meet_season as season', 'season.season_id = p.season_id')
+        ->leftJoin('meet_color as color', 'color.color_id = p.color_id')
+        ->where(['style_sn'=>$style_sn])
+        ->andWhere(['p.disabled'=>'false'])
+        ->one();
+        return $result;
+    }
+    /**
+     * 使用此方法的方法
+     * order/default/dialogue
+     *  
+     * 获取产品订单详情
+     * 要求商品表中产品唯一
+     * @param  [type] $style_sn [description]
+     * @return [type]           [description]
+     */
+    public function getProductSizeOrder($style_sn)
+    {
 
+        $query = new Query;
+        //根据款号查询尺码
+        $result = $query->select(['p.*', 's.size_name'])
+            ->from('meet_product as p')
+            ->leftJoin('meet_size as s', 's.size_id = p.size_id')
+            ->where(['p.style_sn' => $style_sn])
+            ->andWhere(['p.disabled' => 'false'])
+            ->groupBy('p.size_id')
+            ->orderBy('p.cat_b')
+            ->indexBy('size_id')
+            ->all();
+        if (empty($result)) {
+            return [];
+        }
+        foreach ($result as $k => $v) {
+            //尺寸
+            $order[$k]['size'] = $v['size_name'];
+            $order[$k]['self'] = 0;
+            $order[$k]['customer'] = 0;
 
+            $query = new Query;
+            $result = $query->select(['sum(oi.nums) as count', 'c.type'])
+                ->from('meet_order as o')
+                ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
+                ->leftJoin('meet_order_items as oi', 'oi.order_id = o.order_id')
+                ->where(['oi.product_id' => $v['product_id']])
+                ->andWhere(['oi.disabled' => 'false'])
+                ->groupBy('c.type')
+                ->all();
+            if ($result) {
+                foreach ($result as $vv) {
+                    if ($vv['type'] == '直营') {
+                        $order[$k]['self'] += $vv['count'];
+                    } else {
+                        $order[$k]['customer'] += $vv['count'];
+                    }
+                }
+            }
+        }
+        return $order;
+    }
 
 }

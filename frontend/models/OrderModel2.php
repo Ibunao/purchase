@@ -8,6 +8,7 @@ use yii\helpers\ArrayHelper;
 use yii\data\Pagination;
 use frontend\config\ParamsClass;
 /**
+ * 用作备份
  * This is the model class for table "{{%order}}".
  *
  * @property string $order_id
@@ -66,12 +67,17 @@ class OrderModel extends \yii\db\ActiveRecord
     {
         $query = (new Query())->from('meet_order_items as oi')
             ->where(['oi.disabled' => 'false'])
+            // ->leftJoin('meet_order as o', 'o.order_id = oi.order_id')
+            // ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
             ->leftJoin('meet_product as p', 'p.product_id = oi.product_id');
-
-        //customer_id暂时没用也就是c.type  价格可能需要的是订单详情里的价格
+            // ->leftJoin('meet_size as s', 's.size_id = p.size_id')
+            // ->leftJoin('meet_type as tp', 'p.type_id = tp.type_id');
+        // $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 's.size_name', 'tp.type_name', 'oi.order_id', 'c.type'];
+        //customer_id暂时没用也就是c.type
         $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 'p.size_id', 'p.type_id', 'oi.order_id'];
         if (!empty($params['purchase'])) {
             $query->andWhere(['or', "p.purchase_id='".$params['purchase']."'", "p.purchase_id='".Yii::$app->params['purchaseAB']."'"]);
+            // $select = ArrayHelper::merge($select, ['o.purchase_id', 'o.customer_id', 'c.type']);
         }
 
         if (!empty($params['style_sn'])) {
@@ -79,12 +85,21 @@ class OrderModel extends \yii\db\ActiveRecord
         }
         if (!empty($params['cat_big'])) {
             $query->andWhere(['p.cat_b' => $params['cat_big']]);
+            //     ->leftJoin('meet_cat_big as cb', 'cb.big_id = p.cat_b');
+            // $select = ArrayHelper::merge($select, ['cb.cat_name as cat_big_name']);
         }
         if (!empty($params['cat_middle'])) {
             $query->andWhere(['p.cat_m' => $params['cat_middle']]);
+            //     ->leftJoin('meet_cat_middle as cm', 'cm.middle_id = p.cat_m');
+            // $select = ArrayHelper::merge($select, ['cm.cat_name as cat_middle_name']);
         }
         if (!empty($params['cat_small'])) {
             $query->andWhere(['p.cat_s' => $params['cat_small']]);
+            //     ->leftJoin(['meet_cat_big_small as cs', 'cs.small_id = p.cat_s']);
+            // $select = ArrayHelper::merge($select, ['cs.small_cat_name as cat_small_name']);
+            // if(!empty($params['cat_big'])){
+            //     $query->andWhere(['cs.big_id' => $params['cat_big']]);
+            // }
         }
 
         if (!empty($params['season'])) {
@@ -134,12 +149,12 @@ class OrderModel extends \yii\db\ActiveRecord
             $query->groupBy(['oi.product_id']);
             $select = ArrayHelper::merge($select, ['p.product_sn']);
         }
+        $countQuery = clone $query;
         //获取总数量
-        // $countQuery = clone $query;
         // $count = count($countQuery->select(['sum(oi.nums)as nums'])->all());
         $pagination = '';
         if (empty($params['download'])) {
-            //分页  改用固定值，可以减少查询总数浪费的时间
+            //分页  改用固定值，可以减少查询总数的时间
             $pagination = new Pagination(['totalCount' => 1000, 'pageSize' => ParamsClass::$pageSize]);
 
             $query->offset($pagination->offset)
@@ -214,53 +229,66 @@ class OrderModel extends \yii\db\ActiveRecord
     }
 
     //根据商品查找订单数量
-    public function customerOrderByProductIdCount($productIds, $params = [])
+    public function customerOrderByProductIdCount($product_id, $params = [])
     {
         $query = new Query;
-        $query->select(['oi.product_id', 'sum(oi.nums) as count', 'c.type'])
+        $query->select(['sum(oi.nums) as count', 'c.type'])
             ->from('meet_order as o')
             ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
             ->leftJoin('meet_order_items as oi', 'oi.order_id = o.order_id')
-            ->where(['in', 'oi.product_id', $productIds])
+            ->where(['oi.product_id' => $product_id])
             ->andWhere(['oi.disabled' => 'false'])
-            ->groupBy(['oi.product_id', 'c.type']);
-            // ->orderBy('oi.product_id desc');
+            ->groupBy(['c.type']);
         //判断顾客类型
         if (!empty($params['type'])) {
             $query->andWhere(['c.type' => $params['type']]);
         }
 
         $result = $query->all();
-        $productIds = [];
-        foreach ($result as $key => $value) {
-            $productIds[$value['product_id']][$value['type']] = $value['count'];
+
+        $return['self'] = 0;
+        $return['customer'] = 0;
+        if ($result) {
+            foreach ($result as $v) {
+                if ($v['type'] == '直营') {
+                    $return['self'] = $v['count'];
+                } else if ($v['type'] == '客户') {
+                    $return['customer'] = $v['count'];
+                }
+            }
         }
-        return $productIds;
+        return $return;
     }
     //根据商品查找订单数量
-    public function customerOrderByStyleSnCount($styleSnArr, $params = [])
+    public function customerOrderByStyleSnCount($style_sn, $params = [])
     {
         $query = new Query;
-        $query->select(['oi.style_sn', 'sum(oi.nums) as count', 'c.type'])
+        $query->select(['sum(oi.nums) as count', 'c.type'])
             ->from('meet_order as o')
             ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
             ->leftJoin('meet_order_items as oi', 'oi.order_id = o.order_id')
-            ->where(['in', 'oi.style_sn', $styleSnArr])
+            ->where(['oi.style_sn' => $style_sn])
             ->andWhere(['oi.disabled' => 'false'])
-            // ->indexBy('style_sn')
-            ->groupBy(['oi.style_sn', 'c.type']);
+            ->groupBy(['c.type']);
         //判断顾客类型
         if (!empty($params['type'])) {
             $query->andWhere(['c.type' => $params['type']]);
         }
 
         $result = $query->all();
-        $styleSnArr = [];
-        foreach ($result as $key => $value) {
-            $styleSnArr[$value['style_sn']][$value['type']] = $value['count'];
-        }
 
-        return $styleSnArr;
+        $return['self'] = 0;
+        $return['customer'] = 0;
+        if ($result) {
+            foreach ($result as $v) {
+                if ($v['type'] == '直营') {
+                    $return['self'] = $v['count'];
+                } else if ($v['type'] == '客户') {
+                    $return['customer'] = $v['count'];
+                }
+            }
+        }
+        return $return;
     }
     //订单数量汇总: 订单金额汇总:
     public function getOrderAmount($product_id, $params)

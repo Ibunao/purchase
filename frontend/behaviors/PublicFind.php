@@ -9,7 +9,7 @@ use yii\base\Behavior;
 class PublicFind extends Behavior
 {
 	public $object;
-	public function getList()
+	public function getList($index = '')
     {
     	// $key = strtolower(str_replace('\\', '_', get_class($this->object)));
     	// $result = Yii::$app->cache->get($key);
@@ -17,6 +17,6 @@ class PublicFind extends Behavior
     	// 	$result = $this->object->find()->asArray()->all();
     	// 	Yii::$app->cache->set($key, $result);
     	// }
-        return $this->object->find()->asArray()->all();
+        return $this->object->find()->indexBy($index)->asArray()->all();
     }
 }

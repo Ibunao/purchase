@@ -17,7 +17,7 @@ $this->params['breadcrumbs'] = [
     <div class="col-xs-12">
 
 
-        <div class="table-responsive">
+        <div class="table-responsive" id="print_area">
             <div role="grid" class="dataTables_wrapper col-xs-12" id="sample-table-2_wrapper">
                 <table class="table table-striped table-bordered table-hover dataTable" id="goods-list" aria-describedby="sample-table-2_info" style="width:977px">
                     <thead>
@@ -54,13 +54,13 @@ $this->params['breadcrumbs'] = [
                     <?php } ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
                 <div class="row"  style="width:977px">
 <?= LinkPager::widget([
     'pagination' => $result['pagination'],
 ]);?>
                 </div>
-            </div>
-        </div>
     </div>
 </div>
 

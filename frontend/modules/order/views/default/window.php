@@ -77,7 +77,7 @@
         $(".Dialogue").click(function(){
             var style_sn = $(this).attr('data-val');
             var html_demo = $(".showD").html();
-            $.get('admin.php?r=order/default/dialogue&style_sn='+style_sn,function(data){
+            $.get('/order/default/dialogue?style_sn='+style_sn,function(data){
                 if(data.code!==400){
                     var data = data.data;
                     $("#cat_big").html(data.big_name);

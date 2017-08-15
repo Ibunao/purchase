@@ -69,12 +69,4 @@ $this->params['breadcrumbs'] = [
             </div>
         </div>
     </div>
-<script>
-    $(function($){
-        $(".print").click(function(){
-            $("#print_area").printArea( {
-                mode:'popup'
-            });
-        });
-    });
-</script>
+

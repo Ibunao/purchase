@@ -3,7 +3,8 @@
 <link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/bootstrap-timepicker.css" />
 <link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/daterangepicker.css" />
 <link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/colorpicker.css" />
-
+<script type="text/javascript" src="<?=Yii::$app->request->baseUrl;?>/js/layer/layer.min.js"></script>
+<script type="text/javascript" src="<?=Yii::$app->request->baseUrl;?>/js/jquery.PrintArea.js"></script>
 <style>
     .form-group{margin-bottom: 5px;}
     .billContainer2 {
@@ -209,6 +210,7 @@
             <button   class="btn btn-sm <?php if(isset($params['order'])){ echo  ($params['order']=='cost_price desc')?'btn-info':'btn-primary';}else{ echo 'btn-primary'; } ?>  order" data-val="cost_price desc">
                 价格
             </button>
+            <button id="print" class="print btn btn-sm">打印</button>
         </lable>
 
         <lable class="col-sm-3">展示：
@@ -257,6 +259,12 @@
             $("form").eq(0).submit();
             $("input[name='param[download]']").val(0);
         });
+        $(function($){
+            $(".print").click(function(){
+                $("#print_area").printArea( {
+                    mode:'popup'
+                });
+            });
+        });
     });
-
 </script>

@@ -3,9 +3,11 @@
 namespace frontend\modules\order\controllers;
 
 use Yii;
+use yii\db\Query;
 use frontend\config\ParamsClass;
 use frontend\controllers\base\BaseController;
 use frontend\models\PurchaseModel;
+use frontend\models\ProductModel;
 use frontend\models\CustomerModel;
 use frontend\models\CatBigModel;
 use frontend\models\CatMiddleModel;
@@ -19,7 +21,7 @@ use frontend\models\OrderModel;
 use frontend\helpers\IoXls;
 
 /**
- * 订单管理  
+ * 商品订单汇总订  
  * @author dingran
  * @date(2017.7.28)
  */
@@ -55,28 +57,25 @@ class DefaultController extends BaseController
                 $nums = 0;
                 //订单总价格。
                 $amount = 0;
+                foreach ($result['item'] as $item) {
+                    $product_id[] = $item['product_id'];
+                }
+                $order_type = $order->customerOrderByProductIdCount($product_id, $params);
     	        foreach($result['item'] as $k=>$v){
-    	            $product_id[] = $v['product_id'];
-                    //可以不用查询，直接使用查询结果统计
-    	            $order_type = $order->customerOrderByProductIdCount($v['product_id'],$params);
-    	            $result['item'][$k]['customer'] = $order_type['customer'];
-    	            $result['item'][$k]['self'] = $order_type['self'];
-                    //把ID转换成name
-    	            foreach($select_option['cat_big'] as $cat_big){
-    	                if($cat_big['big_id'] == $v['cat_b']){
-    	                    $result['item'][$k]['cat_big_name'] = $cat_big['cat_name'];
-                        }
-    	            }
-    	            foreach($select_option['cat_middle'] as $cat_middle){
-    	                if($cat_middle['middle_id'] == $v['cat_m']){
-    	                    $result['item'][$k]['cat_middle_name'] = $cat_middle['cat_name'];
-                        }
-    	            }
-    	            foreach($select_option['cat_small'] as $cat_small){
-    	                if($cat_small['small_id'] == $v['cat_s']){
-    	                    $result['item'][$k]['cat_small_name'] = $cat_small['cat_name'];
-                        }
-    	            }
+                    $item = $result['item'][$k];
+
+    	            $item['customer'] = isset($order_type[$v['product_id']]['客户'])?$order_type[$v['product_id']]['客户']:0;
+    	            $item['self'] = isset($order_type[$v['product_id']]['直营'])?$order_type[$v['product_id']]['直营']:0;
+                    //id转换成name
+                    $item['cat_big_name'] = $select_option['cat_big'][$v['cat_b']]['cat_name'];
+                    $item['cat_middle_name'] = $select_option['cat_middle'][$v['cat_m']]['cat_name'];
+                    $item['cat_small_name'] = $select_option['cat_small'][$v['cat_s']]['cat_name'];
+                    $item['type_name'] = $select_option['ptype'][$v['type_id']]['type_name'];
+                    $size = (new Query)->select(['size_id', 'size_name'])->from('meet_size')->indexBy('size_id')->all();
+                    $item['size_name'] = $size[$v['size_id']]['size_name'];
+
+                    $result['item'][$k] = $item;
+
                     $nums += $v['nums'];
                     $amount += $v['cost_price']*$v['nums'];
                     
@@ -120,28 +119,21 @@ class DefaultController extends BaseController
                 //订单总价格。
                 $amount = 0;
                 foreach ($result['item'] as $key => $value) {
-                    $order_type = $order->customerOrderByStyleSnCount($v['style_sn'], $params);
-                    
+                    $styleSnArr[] = $value['style_sn'];
                 }
+                $order_type = $order->customerOrderByStyleSnCount($styleSnArr, $params);
     	        foreach($result['item'] as $k=>$v){
-    	            $product_id[] = $v['product_id'];
-    	            $order_type = $order->customerOrderByStyleSnCount($v['style_sn'], $params);
+                    $item = $result['item'][$k];
                     //加盟订货数
-    	            $result['item'][$k]['customer'] = $order_type['customer'];
+    	            $item['customer'] = isset($order_type[$item['style_sn']]['客户'])?$order_type[$item['style_sn']]['客户']:0;
                     //自营订货数
-    	            $result['item'][$k]['self'] = $order_type['self'];
-    	            foreach($select_option['cat_big'] as $cat_big){
-    	                if($cat_big['big_id'] == $v['cat_b'])
-    	                    $result['item'][$k]['cat_big_name'] = $cat_big['cat_name'];
-    	            }
-    	            foreach($select_option['cat_middle'] as $cat_middle){
-    	                if($cat_middle['middle_id'] == $v['cat_m'])
-    	                    $result['item'][$k]['cat_middle_name'] = $cat_middle['cat_name'];
-    	            }
-    	            foreach($select_option['cat_small'] as $cat_small){
-    	                if($cat_small['small_id'] == $v['cat_s'])
-    	                    $result['item'][$k]['cat_small_name'] = $cat_small['cat_name'];
-    	            }
+    	            $item['self'] = isset($order_type[$item['style_sn']]['直营'])?$order_type[$item['style_sn']]['直营']:0;
+                    //id转换成name
+                    $item['cat_big_name'] = $select_option['cat_big'][$v['cat_b']]['cat_name'];
+                    $item['cat_middle_name'] = $select_option['cat_middle'][$v['cat_m']]['cat_name'];
+                    $item['cat_small_name'] = $select_option['cat_small'][$v['cat_s']]['cat_name'];
+                    $item['type_name'] = $select_option['ptype'][$v['type_id']]['type_name'];
+                    $result['item'][$k] = $item;
     	            $nums += $v['nums'];
                     $amount += $v['cost_price']*$v['nums'];
                 }
@@ -150,7 +142,7 @@ class DefaultController extends BaseController
                 $result['amount'] = $amount;
     	    }
 
-    	    
+    	    // var_dump($result);exit;
     	    if(empty($params['view'])){
     	        $view = 'index';
     	    }else{
@@ -164,7 +156,22 @@ class DefaultController extends BaseController
     	    ]);
     	}
     }
-
+    public function actionDialogue($style_sn = '')
+    {
+        //以json的格式输出
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        if(empty($style_sn)){
+            return ['code'=>400];
+        }
+        //产品详情
+        $product = new ProductModel();
+        $result = $product->getList($style_sn);
+        //各尺寸销售情况统计
+        if(!empty($result)){
+            $result['order_count'] = $product->getProductSizeOrder($style_sn);
+        }
+        return ['code'=>200, 'data'=>$result];
+    }
 
     /**
      * 获取表的数据
@@ -176,23 +183,23 @@ class DefaultController extends BaseController
         //（渠道）客户类型：
         $select_option['customer'] = CustomerModel::getList();
         //大类：
-        $select_option['cat_big'] = (new CatBigModel)->getList();
+        $select_option['cat_big'] = (new CatBigModel)->getList('big_id');
         //中类：
-        $select_option['cat_middle'] = (new CatMiddleModel)->getList();
+        $select_option['cat_middle'] = (new CatMiddleModel)->getList('middle_id');
         //小类：
-        $select_option['cat_small'] = (new CatSmallModel)->getList();
+        $select_option['cat_small'] = (new CatSmallModel)->getList('small_id');
         //季节：
-        $select_option['season'] = (new SeasonModel)->getList();
+        $select_option['season'] = (new SeasonModel)->getList('season_id');
         //波段：
-        $select_option['wave'] = (new WaveModel)->getList();
+        $select_option['wave'] = (new WaveModel)->getList('wave_id');
         //等级：
-        $select_option['level'] = (new LevelModel)->getList();
+        $select_option['level'] = (new LevelModel)->getList('level_id');
         //色系：
-        $select_option['scheme'] = (new SchemeModel)->getList();
+        $select_option['scheme'] = (new SchemeModel)->getList('scheme_id');
         //价格带：
         $select_option['price_level'] = ParamsClass::$priceLevel;
         //商品类型
-        $select_option['ptype'] = (new TypeModel)->getList();
+        $select_option['ptype'] = (new TypeModel)->getList('type_id');
 
         Yii::$app->cache->set('b_product_select_option', $select_option, 60*60*24*5);
         return $select_option;
