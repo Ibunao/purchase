@@ -85,7 +85,7 @@ class DefaultController extends BaseController
                 $result['amount'] = $amount;
 
     	    }
-    	    $keys = ['大类','中类','小类','款色','流水','商品类型', '吊牌价' ,'加盟订货','直营订货','总订货','尺寸'];
+    	    $keys = ['大类','中类','小类','款色','流水','商品类型', '吊牌价' ,'加盟订货','直营订货','总订货','尺寸', '订货会'];
     	    foreach($result['item'] as $k=> $v){
                 $data[$k]['A'] = $v['cat_big_name'];
                 $data[$k]['B'] = $v['cat_middle_name'];
@@ -98,6 +98,7 @@ class DefaultController extends BaseController
                 $data[$k]['I'] = $v['self'];
                 $data[$k]['J'] = $v['nums'];
                 $data[$k]['K'] = $v['size_name'];
+                $data[$k]['l'] = $v['purchase_id'];
             }
 
     	    $data2 = [

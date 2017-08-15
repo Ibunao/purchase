@@ -120,17 +120,23 @@ class CustomerModel extends \yii\db\ActiveRecord
             ->andWhere(['disabled' => 'false'])
             ->one();
     }
-
-    static function getList()
+/**
+ * 获取下拉框选项
+ * @param  array  $select  查询字段
+ * @param  array  $groupBy 分组字段
+ * @return [type]          [description]
+ */
+    static function getList($select = ['type'], $groupBy = ['type'])
     {
-        $result = Yii::$app->cache->get('customer_type_list');
+        $key = 'customer_' . implode('_', $select) . '_list';
+        $result = Yii::$app->cache->get($key);
         if (empty($result)) {
             $result = self::find()
-                ->select(['type',])
-                ->groupBy(['type'])
+                ->select($select)
+                ->groupBy($groupBy)
                 ->asArray()
                 ->all();
-            Yii::$app->cache->set('customer_type_list', $result);
+            Yii::$app->cache->set($key, $result);
         }
         return $result;
     }

@@ -61,14 +61,19 @@ class OrderModel extends \yii\db\ActiveRecord
             'disabled' => 'Disabled',
         ];
     }
-    //根据条件进行搜索
+    /**
+     * order/default/index
+     * 商品订单查询
+     * @param  [type] $params [description]
+     * @return [type]         [description]
+     */
     public function orderList($params)
     {
         $query = (new Query())->from('meet_order_items as oi')
             ->where(['oi.disabled' => 'false'])
             ->leftJoin('meet_product as p', 'p.product_id = oi.product_id');
 
-        //customer_id暂时没用也就是c.type  价格可能需要的是订单详情里的价格
+        //价格可能需要的是订单详情里的价格也就是 amount
         $select = ['sum(oi.nums)as nums', 'sum(oi.amount) as amount', 'p.name', 'p.cost_price', 'p.style_sn', 'p.product_id', 'p.img_url', 'p.serial_num', 'p.cat_b', 'p.cat_m', 'p.cat_s', 'p.size_id', 'p.type_id', 'oi.order_id'];
         if (!empty($params['purchase'])) {
             $query->andWhere(['or', "p.purchase_id='".$params['purchase']."'", "p.purchase_id='".Yii::$app->params['purchaseAB']."'"]);
@@ -132,7 +137,7 @@ class OrderModel extends \yii\db\ActiveRecord
             $query->groupBy(['oi.style_sn']);
         }else{
             $query->groupBy(['oi.product_id']);
-            $select = ArrayHelper::merge($select, ['p.product_sn']);
+            $select = ArrayHelper::merge($select, ['p.product_sn', 'p.purchase_id']);
         }
         //获取总数量
         // $countQuery = clone $query;
@@ -183,34 +188,6 @@ class OrderModel extends \yii\db\ActiveRecord
           }
          */
         return array('item' => $list, 'pagination' => $pagination);
-    }
-    //获取最新订单商品价格
-    public function getCustomerNewCount($order_id, $default = false){
-        if(Yii::$app->params['is_latest_price'] || $default){
-            $result = (new Query)
-                ->select(['oi.nums', 'p.cost_price'])
-                ->from('meet_order_items as oi')
-                ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
-                ->where(['oi.order_id' => $order_id])
-                ->andWhere(['oi.disabled' => 'false'])
-                ->orderBy('oi.model_sn ASC')
-                ->all();
-            $finally = 0;
-            foreach($result as $k=>$val){
-                $finally += $val['nums'] * $val['cost_price'];
-            }
-        }else{
-            $result = (new Query)
-                ->select(['SUM(amount) AS finally'])
-                ->from('meet_order_items')
-                ->where(['order_id' => $order_id])
-                ->andWhere(['disabled' => 'false'])
-                ->one();
-            $sql = "SELECT SUM(amount) AS finally FROM {{order_items}} WHERE order_id='{$order_id}' AND disabled='false'";
-            $result = $this->QueryRow($sql);
-            $finally = $result['finally'];
-        }
-        return $finally;
     }
 
     //根据商品查找订单数量
@@ -374,6 +351,136 @@ class OrderModel extends \yii\db\ActiveRecord
             }
             Yii::$app->cache->set("product_list_is_down_".Yii::app()->session['purchase_id'], $result, 86400);
         }
+        return $result;
+    }
+    /**
+     * order/order/index
+     * 客户订单查询
+     * @param  [type] $params [description]
+     * @return [type]         [description]
+     */
+    public function orderQueryList($params)
+    {
+        $select = ['c.code', 'c.agent', 'c.customer_id', 'c.`name` as customer_name', 'c.`type`', 'c.purchase_id', 'c.province', 'c.area', 'c.target', 'o.order_id', 'o.`status`', 'o.cost_item', 'o.create_time', 
+        '`o`.`cost_item` / `c`.`target`  as rate', 'c.parent_id', 'o.cost_item as count_all'];
+        $query = (new Query)
+            ->from('meet_customer as c')
+            ->leftJoin('meet_order as o', 'c.customer_id = o.customer_id')
+            ->where(['o.disabled' => 'false']);
+        //排序条件
+        if (!empty($params['order'])) {
+            $orderBy = $params['order'];
+        }else{
+            $orderBy = 'o.cost_item';
+        }
+        $query->orderBy([$orderBy => SORT_DESC]);
+        //订货会筛选,3为两个订货会都有的产品
+        if (!empty($params['purchase'])) {
+            $query->andWhere(['in', 'c.purchase_id', [$params['purchase'], 3]]);
+        }
+        // 部门类型
+        if (!empty($params['department'])) {
+            $query->andWhere(['c.department' => $params['department']]);
+        }
+        // 订单状态
+        if(!empty($params['status'])){
+            $query->andWhere(['o.status' => $params['status']]);
+        }
+        // 负责人
+        if (!empty($params['leader'])) {
+            $query->andWhere(['c.leader' => $params['leader']]);
+        }
+        // 客户名称
+        if (!empty($params['name'])) {
+            $query->andWhere(['like', 'c.name', $params['name']]);
+        }
+        // 负责人(代理)名字/代码
+        if (!empty($params['leader_name'])) {
+            $query->andWhere(['or', ['like', 'c.agent', $params['leader_name']], ['like', 'c.leader_name', $params['leader_name']]]);
+        }
+        // 客户代码
+        if(!empty($params['code'])){
+            $query->andWhere(['c.code' => $params['code']]);
+        }
+        // 判断顾客类型
+        if (!empty($params['type'])) {
+            $query->andWhere(['c.type' => $params['type']]);
+        }
+        // 大区
+        if (!empty($params['area'])) {
+            $query->andWhere(['c.area' => $params['area']]);
+        }
+        // 用户是否登陆过
+        if (!empty($params['login'])) {
+            if ($params['login'] == 1) {
+                $query->andWhere(['c.login' => 'not null']);
+            } elseif ($params['login'] == 2) {
+                $query->andWhere(['c.login' => 'null']);
+            }
+        }
+        $countQuery = clone $query;
+        $count = $countQuery->count();
+
+// 统计订单总定额
+$countMoneyQuery = clone $query;
+$queryAll = $countMoneyQuery->select(['o.order_id'])->all();
+$countMoney = 0;
+foreach ($queryAll as $k => $item) {
+    //获取订单的价格
+    $countMoney += $this->getCustomerNewCount($item['order_id'])['oldprice'];
+}
+// 统计已经finish审核的订单总定额
+$countFinishQuery = clone $query;
+$queryAll = $countFinishQuery->select(['o.order_id'])->andWhere(['o.status' => 'finish'])->all();
+$finishMoney = 0;
+foreach ($queryAll as $k => $item) {
+    //获取订单的价格
+    $finishMoney += $this->getCustomerNewCount($item['order_id'])['oldprice'];
+}
+
+        $pagination = '';
+        if (empty($params['download'])) {
+            //分页
+            $pagination = new Pagination(['totalCount' => $count, 'pageSize' => ParamsClass::$pageSize]);
+
+            $query->offset($pagination->offset)
+                ->limit($pagination->limit);
+        }
+        $result = $query->select($select)->all();
+        //判断下订单的价格是够改动
+        foreach ($result as $k => $item) {
+            //获取订单的价格
+            $price = $this->getCustomerNewCount($item['order_id']);
+            // 已订货金额
+            $result[$k]['cost_item'] = $price['oldprice'];
+            $result[$k]['is_diff'] = false;
+            if ($price['newprice'] != $price['oldprice']) {
+                $result[$k]['is_diff'] = true;
+            }
+        }
+        return ['list'=>$result, 'pagination'=>$pagination, 'amount'=>$countMoney, 'amount_really'=>$finishMoney];
+    }
+
+    /**
+     * 使用此方法的方法
+     * orderModel/orderQueryList
+     *
+     * 
+     * 获取订单的价格(最新和下订单时的价格) 
+     * @param  [type]  $order_id 订单id
+     * @return [type]            [description]
+     */
+    public function getCustomerNewCount($order_id){
+
+        $result = (new Query)
+            ->select(['sum(oi.nums*p.cost_price) as newprice', 'sum(amount) as oldprice'])
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
+            ->where(['oi.order_id' => $order_id])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->groupBy('oi.order_id')
+            ->orderBy('oi.model_sn ASC')
+            ->all();
         return $result;
     }
 }

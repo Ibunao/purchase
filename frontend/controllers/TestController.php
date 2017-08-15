@@ -27,4 +27,9 @@ class TestController extends Controller
     {
         echo 'www.baidu.com';
     }
+    public function actionIndex()
+    {
+        $this->layout = false;
+        return $this->render('index');
+    }
 }
