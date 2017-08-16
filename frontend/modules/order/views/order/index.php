@@ -1,4 +1,6 @@
 <?php
+use yii\helpers\Url;
+use yii\widgets\LinkPager;
 
 $this->params['breadcrumbs'] = [
     ['label' => '订单'],
@@ -33,7 +35,7 @@ $this->params['breadcrumbs'] = [
                     </thead>
 
                     <tbody role="alert" aria-live="polite" aria-relevant="all">
-                    <?php foreach ($result['item'] as $v) { ?>
+                    <?php foreach ($result['list'] as $v) { ?>
                         <tr class="odd">
 
                             <td><?= $v['customer_name']; ?> </td>
@@ -50,7 +52,7 @@ $this->params['breadcrumbs'] = [
                                 <span class="btn-group col-sm-5">
                                 <input type="button" class="btn btn-sm btn-info "
                                        data-val="<?= $v['order_id']; ?>"
-                                       onclick="window.location.href='admin.php?r=order/order/detail&order_id=<?= $v['order_id']; ?>'"
+                                       onclick="window.location.href='<?=Url::to(['/order/order/detail', 'order_id'=> $v['order_id']]) ;?>'"
                                        value="明细">
                                 </span>
                                 <span class="btn-group col-sm-4" style=" display: <?php if ($v['status'] == 'confirm') {
@@ -76,17 +78,17 @@ $this->params['breadcrumbs'] = [
                                         data-val="<?= $v['code']; ?>" value="">复制
                                 </button>
                                 <button type="button" class="btn btn-sm btn-info "
-                                        onclick="window.location.href='admin.php?r=order/order/downloadorderitems2&order_id=<?= $v['order_id']; ?>'"
+                                        onclick="window.location.href='<?=Url::to(['/order/order/downloadorderitems', 'order_id'=> $v['order_id']]) ;?>'"
                                         value="">下载
                                 </button>
                                 <?php if($v['is_diff']){ ?>
                                     <button type="button" class="btn btn-sm btn-danger"
-                                            onclick="window.location.href='admin.php?r=order/order/differ&order_id=<?= $v['order_id']; ?>'"
+                                            onclick="window.location.href='<?=Url::to(['/order/order/differ', 'order_id'=> $v['order_id']]) ;?>'"
                                             value="">价格变动
                                     </button>
                                 <?php } ?>
                                 <?php if($v['parent_id'] == '1'){ ?>
-                                    <button type="button" class="btn btn-sm btn-success" onclick="window.location.href='admin.php?r=order/order/index&param[leader_name]=<?= $v['code']; ?>'">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="window.location.href='<?=Url::to(['/order/order/index', 'param[leader_name]'=> $v['code']]) ;?>'">
                                         查看下线
                                     </button>
                                 <?php } ?>
@@ -97,14 +99,9 @@ $this->params['breadcrumbs'] = [
                     </tbody>
                 </table>
                 <div class="row">
-                    <?php $this->widget(
-                        'bootstrap.widgets.TbLinkPager',
-                        array(
-                            'pages' => $pages,
-                            'currentPage' => $pageIndex,
-                            'pageSize' => $this->pagesize
-                        )
-                    ); ?>
+<?= LinkPager::widget([
+    'pagination' => $result['pagination'],
+]);?>
                 </div>
             </div>
         </div>
@@ -113,7 +110,7 @@ $this->params['breadcrumbs'] = [
 
 <div id="Dialogue" style="display: none">
     <div style="margin-top: 140px;margin-left: 50px;">
-        <?= $this->renderPartial('copy'); ?>
+        <?= $this->render('copy'); ?>
     </div>
 </div>
 
@@ -126,7 +123,7 @@ $this->params['breadcrumbs'] = [
                 var btn = $(this);
                 var order_id = $(this).attr('data-val');
                 var status = $(this).attr('data-status');
-                $.post('admin.php?r=order/order/check', {'order_id': order_id, 'status': status}, function (data) {
+                $.post('<?=Url::to(['/order/order/check']) ;?>', {'order_id': order_id, 'status': status}, function (data) {
                     if (data.code !== 400) {
                         alert('操作成功');
                         btn.parent().hide();

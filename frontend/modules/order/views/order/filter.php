@@ -166,7 +166,7 @@
                 &nbsp;&nbsp;查询&nbsp;&nbsp;
             </button>
 
-            <button type="button" class="btn btn-sm btn-danger " onclick="location.href='admin.php?r=order/order/copy'"
+            <button type="button" class="btn btn-sm btn-danger " onclick="location.href='/order/order/copy'"
                     value="">订单复制
             </button>
         </div>
@@ -198,8 +198,8 @@
             指标
         </button>
         订单项:
-        <?php if(Yii::app()->params['order_include']){ ?>
-            <a href="/admin.php?r=order/order/import">
+        <?php if(Yii::$app->params['order_include']){ ?>
+            <a href="/order/order/import">
                 <button class="btn btn-sm  btn-primary upload" data-val="2">
                     订单导入
                 </button>
@@ -211,8 +211,8 @@
         <button type="button" onclick="location.href='admin.php?r=order/order/ExportMaster'" class="btn btn-sm btn-primary" value="">
             合并订单导出
         </button>
-        <?php foreach(Yii::app()->params['output_discount'] as $key => $val){ ?>
-            <a href="/admin.php?r=order/order/discount&type=<?= $key; ?>">
+        <?php foreach(Yii::$app->params['output_discount'] as $key => $val){ ?>
+            <a href="/order/order/discount?type=<?= $key; ?>">
                 <button class="btn btn-sm btn-primary">
                     <?= $val; ?>折扣导出
                 </button>

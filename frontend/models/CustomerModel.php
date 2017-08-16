@@ -304,4 +304,77 @@ class CustomerModel extends \yii\db\ActiveRecord
         }
         return $item;
     }
+    /**
+     * 使用的方法  
+     * order/order/index
+     * 
+     * 获取客户订货指标
+     * @param  [type] $param 
+     * @param  [type] $isSelect 所选或总订货指标 
+     * @return [type]        [description]
+     */
+    public function getCustomerTargets($param, $isSelect = false)
+    {
+        $query = self::find()->where(['disabled' => 'false']);
+
+        //客户订货会类型
+        if (!empty($param['purchase'])) {
+            $query->andWhere(['purchase_id' => $param['purchase']]);
+        }
+        // 客户类型
+        if (!empty($param['type'])) {
+            $query->andWhere(['type' => $param['type']]);
+        }
+        // 获取已选用户的订货指标
+        if ($isSelect) {
+            // 部门类型
+            if (!empty($param['department'])) {
+                $query->andWhere(['department' => $param['department']]);
+            }
+            // 负责人
+            if (!empty($param['leader'])) {
+                $query->andWhere(['leader' => $param['leader']]);
+            }
+            // 客户名称
+            if (!empty($param['name'])) {
+                $query->andWhere(['like', 'name', $param['name']]);
+            }
+            // 负责人(代理)名字/代码
+            if (!empty($param['leader_name'])) {
+                $query->andWhere(['or', ['like', 'agent', $param['leader_name']], ['like', 'leader_name', $param['leader_name']]]);
+            }
+            // 客户代码
+            if(!empty($param['code'])){
+                $query->andWhere(['code' => $param['code']]);
+            }
+            // 大区
+            if (!empty($param['area'])) {
+                $query->andWhere(['area' => $param['area']]);
+            }
+            // 用户是否登陆过
+            if (!empty($param['login'])) {
+                if ($param['login'] == 1) {
+                    $query->andWhere(['not', ['login' => null]]);
+                } elseif ($param['login'] == 2) {
+                    $query->andWhere(['login' => null]);
+                }
+            }
+        }
+        $result = $query->sum('target');
+        return $result;
+    }
+
+    /**
+     * 使用的方法
+     * order/order/docopy
+     * 
+     * 查询指定code用户信息
+     * @param  [type] $code code码
+     * @return [type]       [description]
+     */
+    public function getCustomerInfo($code)
+    {
+        return $result = self::find()->where(['code' => $code])->asArray()->one();
+    }
+    
 }

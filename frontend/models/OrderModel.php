@@ -268,7 +268,7 @@ class OrderModel extends \yii\db\ActiveRecord
      * @param  [type] $customerId  用户id
      * @return [type]              [description]
      */
-    public function orderItems($purcheaseId, $customerId)
+    public function orderItems($purchaseId, $customerId)
     {   
         $cacheName = 'order-items-' . $purchaseId . '_' . $customerId;
         $model = Yii::$app->cache->get($cacheName);
@@ -373,7 +373,7 @@ class OrderModel extends \yii\db\ActiveRecord
         }else{
             $orderBy = 'o.cost_item';
         }
-        $query->orderBy([$orderBy => SORT_DESC]);
+        
         //订货会筛选,3为两个订货会都有的产品
         if (!empty($params['purchase'])) {
             $query->andWhere(['in', 'c.purchase_id', [$params['purchase'], 3]]);
@@ -413,9 +413,9 @@ class OrderModel extends \yii\db\ActiveRecord
         // 用户是否登陆过
         if (!empty($params['login'])) {
             if ($params['login'] == 1) {
-                $query->andWhere(['c.login' => 'not null']);
+                $query->andWhere(['not', ['c.login' => null]]);
             } elseif ($params['login'] == 2) {
-                $query->andWhere(['c.login' => 'null']);
+                $query->andWhere(['c.login' => null]);
             }
         }
         $countQuery = clone $query;
@@ -446,6 +446,7 @@ foreach ($queryAll as $k => $item) {
             $query->offset($pagination->offset)
                 ->limit($pagination->limit);
         }
+        $query->orderBy([$orderBy => SORT_DESC]);
         $result = $query->select($select)->all();
         //判断下订单的价格是够改动
         foreach ($result as $k => $item) {
@@ -458,6 +459,7 @@ foreach ($queryAll as $k => $item) {
                 $result[$k]['is_diff'] = true;
             }
         }
+
         return ['list'=>$result, 'pagination'=>$pagination, 'amount'=>$countMoney, 'amount_really'=>$finishMoney];
     }
 
@@ -480,7 +482,174 @@ foreach ($queryAll as $k => $item) {
             ->andWhere(['oi.disabled' => 'false'])
             ->groupBy('oi.order_id')
             ->orderBy('oi.model_sn ASC')
-            ->all();
+            ->one();
         return $result;
+    }
+    /**
+     * 使用的方法
+     * order/order/index
+     * 
+     * 获取该用户的下线客户的预订金额
+     * @param string $code
+     * @return int
+     */
+    public function getAllPriceCount($parentId, $agent = '')
+    {
+        $s = 0;
+        if (!empty($agent)) {
+            if ($parentId == 1) {
+                $query = new Query;
+                $result = $query->select(['o.order_id'])
+                    ->from('meet_order as o')
+                    ->leftJoin('meet_customer as c', 'o.customer_id = c.customer_id')
+                    ->where(['c.agent' => $agent])
+                    ->andWhere(['c.parent_id' => 0])
+                    ->all();
+                foreach ($result as $v) {
+                    $s += $this->getCustomerNewCount($v['order_id'])['oldprice'];
+                }
+            }
+        }
+        return $s;
+    }
+
+    /**
+     * 使用的方法  
+     * order/order/index
+     * 
+     * 获取订单审核的信息
+     * @param  [type] $orderId 订单id
+     * @return [type]          [description]
+     */
+    public function  getOrderLog($orderId)
+    {
+        $result = (new Query)->from('meet_order_log')
+            ->where(['order_id' => $orderId])
+            ->orderBy(['time' => SORT_DESC])
+            ->one();
+        
+        return $result;
+    }
+
+    /**
+     * 使用的方法
+     * order/order/docopy
+     * 
+     * 获取客户订单
+     * @param  [type] $customerId 客户id
+     * @return [type]             [description]
+     */
+    public function  getCustomerOrder($customerId){
+        return $result = self::find()->where(['customer_id' => $customerId])->asArray()->one();
+    }
+
+    public function orderItem($orderId)
+    {
+        $query = new Query;
+        $result = $query->select(['oi.*', 'p.cat_b', 'p.cat_s', 'p.season_id as season', 'p.cost_price'])
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'oi.product_id = p.product_id')
+            ->where(['order_id' => $orderId])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->all();
+        //判断是否使用最新的价格
+        if(Yii::$app->params['is_latest_price']){
+            foreach($result as $key => $val){
+                $result[$key]['amount'] = $val['cost_price'] * $val['nums'];
+            }
+        }else{
+            foreach($result as $key => $val){
+                $result[$key]['price'] = $val['cost_price'];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * 使用的方法  
+     *order/order/docopy
+     * 
+     * 添加订单
+     * @param [type] $purchaseId   from订货会id
+     * @param [type] $customerId   to用户id
+     * @param [type] $customerName to用户名
+     * @param [type] $costItem     from订单总额
+     */
+    public function addOrder($purchaseId, $customerId, $customerName, $costItem)
+    {
+        $createTime = time();
+
+        $orderRow = self::find()->where(['purchase_id' => $purchaseId])
+            ->andWhere(['customer_id' => $customerId])
+            ->one();
+
+        //检查是否已经生成过订单
+        if (!empty($orderRow)) {
+            //订单存在则更新
+            $orderId = $orderRow->order_id;
+            $orderRow->edit_time = $createTime;
+            $orderRow->cost_item = $costItem;
+            if ($order->save()) {
+                return $orderId;
+            }
+        } else {
+            $orderId = $this->build_order_no();
+
+            $this->order_id = $orderId;
+            $this->purchase_id = $purcheaseId;
+            $this->status = 'active';
+            $this->customer_id = $customerId;
+            $this->customer_name = $customerName;
+            $this->cost_item = $costItem;
+            $this->create_time = $createTime;
+            if ($this->save()) {
+                return $orderId;
+            }
+        }
+        return false;
+    }
+
+    /**
+     *  使用方法
+     *  order/order/docopy
+     * 
+     * 添加订单详情
+     * @param [type] $orderId   订单id
+     * @param [type] $orderList 订单item
+     */
+    public function addToOrderItem($orderId, $orderList)
+    {
+        $itmes = [];
+        foreach ($orderList as $k => $v) {
+            $item = [];
+            $item[] = $orderId;
+            $item[] = $v['product_id'];
+            $item[] = $v['product_sn'];
+            $item[] = $v['style_sn'];
+            $item[] = $v['model_sn'];
+            $item[] = $v['name'];
+            $item[] = $v['price'];
+            $item[] = $v['amount'];
+            $item[] = $v['nums'];
+
+            $items[] = item;
+        }
+
+        $result = Yii::$app->db
+            ->createCommand()
+            ->batchInsert('meet_order_items',
+            ['order_id', 'product_id', 'product_sn', 'style_sn', 'model_sn', 'name', 'price', 'amount', 'nums'], $items)
+        ->execute();
+
+        
+        return $result;
+    }
+    /**
+     * 生成订单号
+     * @return [type] [description]
+     */
+    public function buildOrderNo()
+    {
+        return date('Ymd') . substr(implode(NULL, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
     }
 }
