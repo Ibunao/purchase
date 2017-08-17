@@ -365,8 +365,8 @@ class OrderModel extends \yii\db\ActiveRecord
         '`o`.`cost_item` / `c`.`target`  as rate', 'c.parent_id', 'o.cost_item as count_all'];
         $query = (new Query)
             ->from('meet_customer as c')
-            ->leftJoin('meet_order as o', 'c.customer_id = o.customer_id')
-            ->where(['o.disabled' => 'false']);
+            ->leftJoin('meet_order as o', 'c.customer_id = o.customer_id');
+            
         //排序条件
         if (!empty($params['order'])) {
             $orderBy = $params['order'];
@@ -410,13 +410,15 @@ class OrderModel extends \yii\db\ActiveRecord
         if (!empty($params['area'])) {
             $query->andWhere(['c.area' => $params['area']]);
         }
-        // 用户是否登陆过
+        // 用户是否登陆过,没有登陆过的就不用过滤 o.disabled 因为为null
         if (!empty($params['login'])) {
             if ($params['login'] == 1) {
-                $query->andWhere(['not', ['c.login' => null]]);
+                $query->andWhere(['not', ['c.login' => null]])->andWhere(['o.disabled' => 'false']);
             } elseif ($params['login'] == 2) {
                 $query->andWhere(['c.login' => null]);
             }
+        }else{
+            $query->andWhere(['o.disabled' => 'false']);
         }
         $countQuery = clone $query;
         $count = $countQuery->count();
