@@ -597,5 +597,69 @@ class ProductModel extends \yii\db\ActiveRecord
         }
         return $order;
     }
-
+    /**
+     * 使用方法
+     * order/order/detail
+     * 
+     * 获取指定款号产品的尺码信息
+     * @param  [type] $modelSn 款号
+     * @return [type]          [description]
+     */
+    public function getSizeArr($modelSn)
+    {
+        $select = ['p.size_id', 's.size_name'];
+        $result = (new Query)->select($select)
+            ->from('meet_product as p')
+            ->leftJoin('meet_size as s', 's.size_id = p.size_id')
+            ->where(['p.model_sn' => $model_sn])
+            ->andWhere(['p.disabled' => 'false'])
+            ->groupBy('s.size_id')
+            ->all();
+        return $result;
+    }
+    /**
+     * 使用方法
+     * order/order/detail
+     * 
+     * 获取指定款号产品的尺码信息
+     * @param  [type] $modelSn 款号
+     * @return [type]          [description]
+     */
+    public function getColorArr($modelSn)
+    {
+        $select = ['p.color_id', 'c.color_name'];
+        $result = (new Query)->select($select)
+            ->from('meet_product as p')
+            ->leftJoin('meet_color as c', 'c.color_id = p.color_id')
+            ->where(['p.model_sn' => $model_sn])
+            ->andWhere(['p.disabled' => 'false'])
+            ->groupBy('c.color_id')
+            ->all();
+        return $result;
+        
+    }
+    /**
+     * 使用方法  
+     * order/order/detail
+     * 
+     * 用户下单的产品中指定款号的商品订单信息
+     * @param  [type] $orderId 单号
+     * @param  [type] $modelSn 款号
+     * @return [type]          [description]
+     */
+    public function getProductsCount($orderId, $modelSn)
+    {
+        $select = ['oi.*', 'p.wave_id', 'p.size_id', 'p.color_id', 's.size_name', 'c.color_name', 'w.wave_name', 'p.img_url', 'p.cost_price'];
+        $result = (new Query)->select([$select])
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
+            ->leftJoin('meet_size as s', 's.size_id = p.size_id')
+            ->leftJoin('meet_color as s', 'c.color_id = p.color_id')
+            ->leftJoin('meet_wave as s', 'w.wave_id = p.wave_id')
+            ->where(['order_id' => $order_id])
+            ->andWhere(['oi.model_sn' => $model_sn])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->all();
+        return $result;
+    }
 }

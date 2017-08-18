@@ -19,4 +19,8 @@ class TestController extends Controller
         $result = substr(implode(NULL, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
         var_dump($no, $no1, $no2, $no3, $no4, $result);
     }
+    public function action()
+    {
+        
+    }
 }

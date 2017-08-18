@@ -425,19 +425,33 @@ class OrderModel extends \yii\db\ActiveRecord
 
 // 统计订单总定额
 $countMoneyQuery = clone $query;
-$queryAll = $countMoneyQuery->select(['o.order_id'])->all();
+$orderPrice = $countMoneyQuery
+            ->select(['sum(oi.nums*p.cost_price) as newprice', 'sum(amount) as oldprice'])
+            ->leftJoin('meet_order_items as oi', 'oi.order_id = o.order_id')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
+            ->andWhere(['oi.disabled' => 'false'])
+            ->groupBy('oi.order_id')
+            ->orderBy('oi.model_sn ASC')
+            ->all();
 $countMoney = 0;
-foreach ($queryAll as $k => $item) {
-    //获取订单的价格
-    $countMoney += $this->getCustomerNewCount($item['order_id'])['oldprice'];
+foreach ($orderPrice as $key => $order) {
+    $countMoney += $order['oldprice'];
 }
+
 // 统计已经finish审核的订单总定额
 $countFinishQuery = clone $query;
-$queryAll = $countFinishQuery->select(['o.order_id'])->andWhere(['o.status' => 'finish'])->all();
+$queryAll = $countFinishQuery
+            ->select(['sum(oi.nums*p.cost_price) as newprice', 'sum(amount) as oldprice'])
+            ->leftJoin('meet_order_items as oi', 'oi.order_id = o.order_id')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
+            ->andWhere(['oi.disabled' => 'false'])
+            ->andWhere(['o.status' => 'finish'])
+            ->groupBy('oi.order_id')
+            ->orderBy('oi.model_sn ASC')
+            ->all();
 $finishMoney = 0;
-foreach ($queryAll as $k => $item) {
-    //获取订单的价格
-    $finishMoney += $this->getCustomerNewCount($item['order_id'])['oldprice'];
+foreach ($queryAll as $key => $order) {
+    $finishMoney += $order['oldprice'];
 }
 
         $pagination = '';
@@ -468,7 +482,7 @@ foreach ($queryAll as $k => $item) {
     /**
      * 使用此方法的方法
      * orderModel/orderQueryList
-     *
+     * order/order/detail
      * 
      * 获取订单的价格(最新和下订单时的价格) 
      * @param  [type]  $order_id 订单id
@@ -591,14 +605,14 @@ foreach ($queryAll as $k => $item) {
             $orderId = $orderRow->order_id;
             $orderRow->edit_time = $createTime;
             $orderRow->cost_item = $costItem;
-            if ($order->save()) {
+            if ($orderRow->save()) {
                 return $orderId;
             }
         } else {
-            $orderId = $this->build_order_no();
+            $orderId = $this->buildOrderNo();
 
             $this->order_id = $orderId;
-            $this->purchase_id = $purcheaseId;
+            $this->purchase_id = $purchaseId;
             $this->status = 'active';
             $this->customer_id = $customerId;
             $this->customer_name = $customerName;
@@ -634,7 +648,7 @@ foreach ($queryAll as $k => $item) {
             $item[] = $v['amount'];
             $item[] = $v['nums'];
 
-            $items[] = item;
+            $items[] = $item;
         }
 
         $result = Yii::$app->db
@@ -646,6 +660,7 @@ foreach ($queryAll as $k => $item) {
         
         return $result;
     }
+
     /**
      * 生成订单号
      * @return [type] [description]
@@ -653,5 +668,71 @@ foreach ($queryAll as $k => $item) {
     public function buildOrderNo()
     {
         return date('Ymd') . substr(implode(NULL, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
+    }
+    /**
+     *  使用方法
+     *  order/order/detail
+     * 
+     * 根据订单号获取订单中商品的款号
+     * @param  [type] $order_id 订单id
+     * @return [type]           [description]
+     */
+    public function orderProductModelSn($orderId)
+    {
+
+        if (empty($orderId)) {
+            return [];
+        }
+        $result = (new Query)->select(['model_sn'])
+                ->from('meet_order_items')
+                ->where(['order_id' => $order_id])
+                ->andWhere(['disabled' => 'false'])
+                ->groupBy(['model_sn'])
+                ->all();
+        return $result;
+    }
+    /**
+     *  使用方法
+     *  order/order/detail
+     * 
+     * 订单中商品详情
+     * @param  [type] $orderId [description]
+     * @return [type]          [description]
+     */
+    public function orderInfo($orderId)
+    {
+        $select = ['c.customer_id', 'c.code', 'c.name as customer_name', 'c.type', 'c.province', 'c.area', 'c.target', 'o.order_id', 'o.status', 'o.cost_item', 'o.create_time', 'mp.purchase_name', 'c.purchase_id', 'c.big_1', 'c.big_2', 'c.big_3', 'c.big_4', 'c.big_6', 'c.big_1_count', 'c.big_2_count', 'c.big_3_count', 'c.big_4_count', 'c.big_6_count'];
+        $result = (new Query)->select($select)
+            ->from('meet_customer as c')
+            ->leftJoin('meet_order as o', 'c.customer_id = o.customer_id')
+            ->leftJoin('meet_purchase as mp', 'mp.purchase_id = o.purchase_id')
+            ->where(['o.disabled' => 'false'])
+            ->andWhere(['order_id' => $orderId])
+            ->orderBy(['cost_item'=>SORT_DESC])
+            ->all();
+        //获取总数量和总钱数
+        $query = (new Query)->select(['sum(nums) as nums', 'sum(amount) as finally'])
+            ->from('meet_order_items')
+            ->where(['order_id' => $orderId])
+            ->andWhere(['disabled' => 'false'])
+            ->one();
+        $result['nums'] = $query['nums'];
+        $result['cost_item'] = $query['finally'];
+        return $result;
+    }
+
+    public function orderItemList($orderId)
+    {
+        $select = ['oi.*', 'p.cat_b', 'p.cat_s', 's.size_name', 'c.color_name', 'p.cost_price'];
+        $result = (new Query)->select($select)
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
+            ->leftJoin('meet_size as s', 'p.size_id = s.size_id')
+            ->leftJoin('meet_color as c', 'p.color_id = c.color_id')
+            ->where(['order_id' => $order_id])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->orderBy(['model_sn' => SORT_DESC])
+            ->all();
+        return $result;
     }
 }

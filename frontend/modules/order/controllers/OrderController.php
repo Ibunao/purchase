@@ -85,7 +85,7 @@ class OrderController extends BaseController
 		$request = Yii::$app->request;
 		$from = $request->post('from');
 		$to = $request->post('to');
-		if (empty($form) || empty($to)) {
+		if (empty($from) || empty($to)) {
 			return ['msg' => '请填写客户编号', 'code' => 400];
 		}
 		$customer = new CustomerModel;
@@ -137,6 +137,65 @@ class OrderController extends BaseController
         } else {
         	return ['msg' => '复制订单失败', 'code' => 400];
         }
+	}
+	/**
+	 * 订单详情
+	 * @return [type] [description]
+	 */
+	public function actionDetail($order_id)
+	{
+		$orderModel = new OrderModel;
+		$orderModelSn = $orderModel->orderProductModelSn($order_id);
+		if (empty($orderModelSn)) {
+			echo "此订单没有商品";exit;
+		}
+		//订单的用户信息
+		$orderInfo = $orderModel->orderInfo($order_id);
+		$result = [];
+		$productModel = new ProductModel;
+		foreach ($orderModelSn as $key => $value) {
+			$sizeArr = $productModel->getSizeArr($v['model_sn']);
+			$colorArr = $productModel->getColorArr($v['model_sn']);
+			$orderItems = $productModel->getProductsCount($order_id, $v['model_sn']);
+			foreach ($sizeArr as $sk => $sv) {
+                foreach ($colorArr as $ck => $cv) {
+                    $result[$k]['norm'][$cv['color_name']][$sv['size_name']] = 0;
+                    foreach ($orderItems as $ik => $iv) {
+                        $result[$k]['name'] = $iv['name'];
+                        $result[$k]['wave_name'] = $iv['wave_name'];
+                        $result[$k]['model_sn'] = $iv['model_sn'];
+                        $result[$k]['size_name'][$sk] = $sv['size_name'];
+                        $result[$k]['color_name'][$ck] = $cv['color_name'];
+                        $result[$k]['img_url'] = $iv['img_url'];
+                        // $result[$k]['cost_price'] = $iv['cost_price'];//商品现在的价格
+                        $result[$k]['cost_price'] = $iv['price'];//订单里的价格
+                        if ($iv['size_id'] == $sv['size_id'] && $iv['color_id'] == $cv['color_id']) {
+                            $result[$k]['norm'][$cv['color_name']][$sv['size_name']] = $iv['nums'];
+                        }
+                    }
+                }
+            }
+		}
+		$data = [];
+		$orderlist = $orderModel->orderItemList($order_id);
+		foreach ($orderlist as $k => $v) {
+		    $data[$v['style_sn']]['model_sn'] = $v['model_sn'];
+		    $data[$v['style_sn']]['name'] = $v['name'];
+		    $data[$v['style_sn']]['price'] = $v['price'];
+		    $data[$v['style_sn']]['color_name'] = $v['color_name'];
+		    $data[$v['style_sn']][$v['color_name']]['size_name'][$k]['size_name'] = $v['size_name'];
+		    $data[$v['style_sn']][$v['color_name']]['size_name'][$k]['nums'] = $v['nums'];
+		}
+		$count = $orderModel->getCustomerNewCount($order_id)['oldprice'];
+		$size = new SizeModel();
+		$groupSize = $size->getGroupSize();
+		return $this->render('detail', [
+				'result' => $result, 
+				'order_info' => $orderInfo, 
+				'orderlist' => $data, 
+				'count'=>$count, 
+				'sizeGroup'=>$groupSize
+			]);
 	}
 	/**
 	 * 筛选框选项

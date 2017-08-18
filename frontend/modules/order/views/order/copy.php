@@ -18,7 +18,7 @@ $this->params['breadcrumbs'] = [
             if (confirm('确认订单复制操作吗？')) {
                 var from = $('#from').val();
                 var to = $('#to').val();
-                $.post('/order/order/doCopy', {'from': from, 'to': to}, function (data) {
+                $.post('/order/order/docopy', {'from': from, 'to': to}, function (data) {
                     if (data.code !== 400) {
                         alert(data.msg);
                         location.replace(location.href);
