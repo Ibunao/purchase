@@ -54,4 +54,19 @@ class SeasonModel extends \yii\db\ActiveRecord
             'p_order' => 'P Order',
         ];
     }
+
+    public function getSeason(){
+        $result = self::find()->select(['season_id', 'season_name'])->asArray()->all();
+        return $result;
+    }
+
+    public function transSeasonAll()
+    {
+        $result = $this->getSeason();
+        $item = array();
+        foreach( $result as  $k => $v) {
+            $item[$v['season_id']] = $v;
+        }
+        return $item;
+    }
 }

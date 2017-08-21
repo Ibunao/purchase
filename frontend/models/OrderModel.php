@@ -71,6 +71,7 @@ class OrderModel extends \yii\db\ActiveRecord
     {
         $query = (new Query())->from('meet_order_items as oi')
             ->where(['oi.disabled' => 'false'])
+            ->andWhere(['<>', 'oi.order_id', '2017080957101504'])//暂时过滤掉电商A
             ->leftJoin('meet_product as p', 'p.product_id = oi.product_id');
 
         //价格可能需要的是订单详情里的价格也就是 amount
@@ -136,8 +137,8 @@ class OrderModel extends \yii\db\ActiveRecord
         if (empty($params['download'])) {
             $query->groupBy(['oi.style_sn']);
         }else{
-            $query->groupBy(['oi.product_id']);
-            $select = ArrayHelper::merge($select, ['p.product_sn', 'p.purchase_id']);
+            $query->groupBy(['oi.style_sn', 'p.size_id']);
+            $select = ArrayHelper::merge($select, ['p.product_sn', 'p.purchase_id', 'p.season_id', 'p.wave_id', 'p.brand_id', 'p.style_sn', 'p.model_sn', 'p.color_id', 'p.cost_price']);
         }
         //获取总数量
         // $countQuery = clone $query;
@@ -218,14 +219,16 @@ class OrderModel extends \yii\db\ActiveRecord
     public function customerOrderByStyleSnCount($styleSnArr, $params = [])
     {
         $query = new Query;
-        $query->select(['oi.style_sn', 'sum(oi.nums) as count', 'c.type'])
+        $query->select(['oi.style_sn', 'p.size_id', 'sum(oi.nums) as count', 'c.type'])
             ->from('meet_order as o')
             ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
             ->leftJoin('meet_order_items as oi', 'oi.order_id = o.order_id')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
             ->where(['in', 'oi.style_sn', $styleSnArr])
             ->andWhere(['oi.disabled' => 'false'])
+            ->andWhere(['<>', 'oi.order_id', '2017080957101504'])//暂时过滤掉电商A
+            ->groupBy(['oi.style_sn', 'p.size_id', 'c.type']);
             // ->indexBy('style_sn')
-            ->groupBy(['oi.style_sn', 'c.type']);
         //判断顾客类型
         if (!empty($params['type'])) {
             $query->andWhere(['c.type' => $params['type']]);
@@ -234,7 +237,7 @@ class OrderModel extends \yii\db\ActiveRecord
         $result = $query->all();
         $styleSnArr = [];
         foreach ($result as $key => $value) {
-            $styleSnArr[$value['style_sn']][$value['type']] = $value['count'];
+            $styleSnArr[$value['style_sn']][$value['size_id']][$value['type']] = $value['count'];
         }
 
         return $styleSnArr;

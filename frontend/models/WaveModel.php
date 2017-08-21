@@ -63,4 +63,15 @@ class WaveModel extends \yii\db\ActiveRecord
         $result = self::find()->select(['wave_id', 'wave_name'])->asArray()->all();
         return $result;
     }
+
+    public function transWaveAll()
+    {
+        $result = $this->getWave();
+        $item = [];
+        foreach( $result as  $k => $v) {
+            $item[$v['wave_id']] = $v;
+        }
+        return $item;
+    }
+
 }

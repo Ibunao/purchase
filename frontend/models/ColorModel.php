@@ -58,4 +58,13 @@ class ColorModel extends \yii\db\ActiveRecord
             ->all();
         return $result;
     }
+
+    public function transColorAll(){
+        $result = $this->getColor();
+        $item = [];
+        foreach( $result as  $k => $v) {
+            $item[$v['color_id']] = $v;
+        }
+        return $item;
+    }
 }

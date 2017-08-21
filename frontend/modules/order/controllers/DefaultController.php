@@ -14,6 +14,8 @@ use frontend\models\CatMiddleModel;
 use frontend\models\CatSmallModel;
 use frontend\models\SeasonModel;
 use frontend\models\WaveModel;
+use frontend\models\ColorModel;
+use frontend\models\BrandModel;
 use frontend\models\LevelModel;
 use frontend\models\SchemeModel;
 use frontend\models\TypeModel;
@@ -52,26 +54,42 @@ class DefaultController extends BaseController
         if(!empty($params['download'])){
             $data = [];
     	    if(!empty($result['item'])){
-    	        $product_id= [];
+                //波段
+                $wave = new WaveModel;
+                $waveArr = $wave->transWaveAll();
+                //颜色
+                $color = new ColorModel;
+                $colorArr = $color->transColorAll();
+                //品牌  
+                $brand = new BrandModel;
+                $brandArr = $brand->transBrandAll();
+                //季节  
+                $season = new SeasonModel;
+                $seasonArr = $season->transSeasonAll();
+
+    	        $style_sn= [];
                 //订单总数量
                 $nums = 0;
                 //订单总价格。
                 $amount = 0;
                 foreach ($result['item'] as $item) {
-                    $product_id[] = $item['product_id'];
+                    $style_sn[] = $item['style_sn'];
                 }
-                $order_type = $order->customerOrderByProductIdCount($product_id, $params);
-    	        foreach($result['item'] as $k=>$v){
+                $order_type = $order->customerOrderByStyleSnCount($style_sn, $params);
+                $size = (new Query)->select(['size_id', 'size_name'])->from('meet_size')->indexBy('size_id')->all();
+                foreach($result['item'] as $k=>$v){
                     $item = $result['item'][$k];
 
-    	            $item['customer'] = isset($order_type[$v['product_id']]['客户'])?$order_type[$v['product_id']]['客户']:0;
-    	            $item['self'] = isset($order_type[$v['product_id']]['直营'])?$order_type[$v['product_id']]['直营']:0;
+                    //加盟订货数
+                    $item['customer'] = isset($order_type[$item['style_sn']][$item['size_id']]['客户'])?$order_type[$item['style_sn']][$item['size_id']]['客户']:0;
+                    //自营订货数
+                    $item['self'] = isset($order_type[$item['style_sn']][$item['size_id']]['直营'])?$order_type[$item['style_sn']][$item['size_id']]['直营']:0;
+
                     //id转换成name
                     $item['cat_big_name'] = $select_option['cat_big'][$v['cat_b']]['cat_name'];
                     $item['cat_middle_name'] = $select_option['cat_middle'][$v['cat_m']]['cat_name'];
                     $item['cat_small_name'] = $select_option['cat_small'][$v['cat_s']]['cat_name'];
                     $item['type_name'] = $select_option['ptype'][$v['type_id']]['type_name'];
-                    $size = (new Query)->select(['size_id', 'size_name'])->from('meet_size')->indexBy('size_id')->all();
                     $item['size_name'] = $size[$v['size_id']]['size_name'];
 
                     $result['item'][$k] = $item;
@@ -85,8 +103,9 @@ class DefaultController extends BaseController
                 $result['amount'] = $amount;
 
     	    }
-    	    $keys = ['大类','中类','小类','款色','流水','商品类型', '吊牌价' ,'加盟订货','直营订货','总订货','尺寸', '订货会'];
-    	    foreach($result['item'] as $k=> $v){
+            $keys = array('大类','中类','小类','款色','流水','商品类型', '吊牌价' ,'加盟订货','直营订货','总订货','尺寸', '波段', '商品款号', '商品名称', '色号', '颜色名称', '品牌', '季节');
+            $data = [];
+            foreach($result['item'] as $k=> $v){
                 $data[$k]['A'] = $v['cat_big_name'];
                 $data[$k]['B'] = $v['cat_middle_name'];
                 $data[$k]['C'] = $v['cat_small_name'];
@@ -98,7 +117,13 @@ class DefaultController extends BaseController
                 $data[$k]['I'] = $v['self'];
                 $data[$k]['J'] = $v['nums'];
                 $data[$k]['K'] = $v['size_name'];
-                $data[$k]['l'] = $v['purchase_id'];
+                $data[$k]['l'] = $waveArr[$v['wave_id']]['wave_name'];
+                $data[$k]['m'] = $v['model_sn'];
+                $data[$k]['n'] = $v['name'];
+                $data[$k]['o'] = $colorArr[$v['color_id']]['color_no'];
+                $data[$k]['p'] = $colorArr[$v['color_id']]['color_name'];
+                $data[$k]['q'] = $brandArr[$v['brand_id']]['brand_name'];
+                $data[$k]['r'] = $seasonArr[$v['season_id']]['season_name'];
             }
 
     	    $data2 = [

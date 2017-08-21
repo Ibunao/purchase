@@ -50,4 +50,14 @@ class BrandModel extends \yii\db\ActiveRecord
         $result = self::find()->select(['brand_id', 'brand_name'])->asArray()->all();
         return $result;
     }
+
+    public function transBrandAll()
+    {
+        $result = $this->getBrand();
+        $item = [];
+        foreach( $result as  $k => $v) {
+            $item[$v['brand_id']] = $v;
+        }
+        return $item;
+    }
 }
