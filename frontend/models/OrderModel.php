@@ -7,6 +7,7 @@ use yii\db\Query;
 use yii\helpers\ArrayHelper;
 use yii\data\Pagination;
 use frontend\config\ParamsClass;
+
 /**
  * This is the model class for table "{{%order}}".
  *
@@ -264,10 +265,12 @@ class OrderModel extends \yii\db\ActiveRecord
     }
 
     /**
-     * FBaseController使用+1
+     * use
+     * FBaseController
+     * 
      * 获取用户的订单详情 
      * 添加商品订单的时候注意清缓存
-     * @param  [type] $purcheaseId 订货会id
+     * @param  [type] $purchaseId 订货会id
      * @param  [type] $customerId  用户id
      * @return [type]              [description]
      */
@@ -277,7 +280,7 @@ class OrderModel extends \yii\db\ActiveRecord
         $model = Yii::$app->cache->get($cacheName);
 
         if (!$model) {
-            $model = $this->orderCache();
+            $model = $this->orderCache($purchaseId, $customerId);
             Yii::$app->cache->set($cacheName, $model);
         }
         //原代码有的，可以在更新状态的时候直接删除缓存就行了
@@ -299,15 +302,15 @@ class OrderModel extends \yii\db\ActiveRecord
     }
     /**
      * 要缓存的订单信息
-     * @param  [type] $purcheaseId 订购会id
+     * @param  [type] $purchaseId 订购会id
      * @param  [type] $customerId  用户id
      * @return [type]              [description]
      */ 
-    public function orderCache($purcheaseId, $customerId)
+    public function orderCache($purchaseId, $customerId)
     {
         //查询生效的订单
         $model['order_row'] = self::find()
-            ->where(['purchase_id' => $purcheaseId])//可以不添加，因为一个用户就对应了订货会类型
+            ->where(['purchase_id' => $purchaseId])//可以不添加，因为一个用户就对应了订货会类型
             ->andWhere(['customer_id' => $customerId])
             ->andWhere(['disabled' => 'false'])
             ->asArray()
@@ -323,7 +326,7 @@ class OrderModel extends \yii\db\ActiveRecord
         $costItem = 0.00;
         if (empty($itemList)) {
             //商品总数量
-            $model['order_row']['total_num'] = $total_num;
+            $model['order_row']['total_num'] = $totalNum;
 
             return ['order_row' => $model['order_row'], 'item_list' => []];
         }
@@ -334,7 +337,7 @@ class OrderModel extends \yii\db\ActiveRecord
 
             $totalNum += $item['nums'];
         }
-        $model['order_row']['total_num'] = $total_num;
+        $model['order_row']['total_num'] = $totalNum;
 
         return $model;
     }
@@ -352,7 +355,7 @@ class OrderModel extends \yii\db\ActiveRecord
             foreach($res as $val){
                 $result[$val['product_id']] = $val['is_down'];
             }
-            Yii::$app->cache->set("product_list_is_down_".Yii::app()->session['purchase_id'], $result, 86400);
+            Yii::$app->cache->set("product_list_is_down_".Yii::$app->session['purchase_id'], $result, 86400);
         }
         return $result;
     }
@@ -487,6 +490,7 @@ foreach ($queryAll as $key => $order) {
      * orderModel/orderQueryList
      * order/order/detail
      * 
+     * 
      * 获取订单的价格(最新和下订单时的价格) 
      * @param  [type]  $order_id 订单id
      * @return [type]            [description]
@@ -507,6 +511,7 @@ foreach ($queryAll as $key => $order) {
     /**
      * 使用的方法
      * order/order/index
+     * $this/getMasterCount
      * 
      * 获取该用户的下线客户的预订金额
      * @param string $code
@@ -688,7 +693,7 @@ foreach ($queryAll as $key => $order) {
         }
         $result = (new Query)->select(['model_sn'])
                 ->from('meet_order_items')
-                ->where(['order_id' => $order_id])
+                ->where(['order_id' => $orderId])
                 ->andWhere(['disabled' => 'false'])
                 ->groupBy(['model_sn'])
                 ->all();
@@ -697,6 +702,7 @@ foreach ($queryAll as $key => $order) {
     /**
      *  使用方法
      *  order/order/detail
+     *  order/order
      * 
      * 订单中商品详情
      * @param  [type] $orderId [description]
@@ -712,7 +718,7 @@ foreach ($queryAll as $key => $order) {
             ->where(['o.disabled' => 'false'])
             ->andWhere(['order_id' => $orderId])
             ->orderBy(['cost_item'=>SORT_DESC])
-            ->all();
+            ->one();
         //获取总数量和总钱数
         $query = (new Query)->select(['sum(nums) as nums', 'sum(amount) as finally'])
             ->from('meet_order_items')
@@ -724,6 +730,46 @@ foreach ($queryAll as $key => $order) {
         return $result;
     }
 
+    public function DownloadOrderItemList($orderId)
+    {
+        $select = ['oi.*', 'p.cat_b', 'p.cat_s', 's.size_id', 's.size_no', 's.size_name', 'ms.scheme_id', 'ms.scheme_name', 'p.color_id', 'c.color_no', 'c.color_name', 'cb.big_id', 'cb.cat_name as big_name', 
+        'cm.middle_id', 'cm.cat_name as middle_name', 'sm.small_id', 'sm.cat_name as small_name', 'cs.season_id', 'cs.season_name', 'p.level_id', 'l.level_name', 'p.memo', 'b.brand_name', 'b.brand_id', 'g.wave_name', 'g.wave_id', 'p.cost_price'];
+        $result = (new Query)->select($select)
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
+            ->leftJoin('meet_size as s', 'p.size_id = s.size_id')
+            ->leftJoin('meet_color as c', 'c.color_id = p.color_id')
+            ->leftJoin('meet_cat_big as cb', 'cb.big_id = p.cat_b')
+            ->leftJoin('meet_cat_middle as cm', 'cm.middle_id = p.cat_m')
+            ->leftJoin('meet_cat_small as sm', 'sm.small_id = p.cat_s')
+            ->leftJoin('meet_scheme as ms', 'ms.scheme_id = p.scheme_id')
+            ->leftJoin('meet_season as cs', 'cs.season_id = p.season_id')
+            ->leftJoin('meet_level as l', 'l.level_id = p.level_id')
+            ->leftJoin('meet_brand as b', 'b.brand_id = p.brand_id')
+            ->leftJoin('meet_wave as g', 'g.wave_id = p.wave_id')
+            ->where(['oi.order_id' => $orderId])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->groupBy(['oi.product_sn'])
+            ->orderBy(['oi.model_sn' => SORT_ASC])
+            ->all();
+        if (empty($result)) {
+            return [];
+        }
+        //最新价格的商品总价
+        //如果更新商品价格后刷新订单价格则不需要这一步
+        foreach ($result as $key => $value) {
+            $result[$key]['amount'] = $value['cost_price'] * $value['nums'];
+        }
+        return $result;
+    }
+    /**
+     * 用法
+     * order/order/detail
+     * 
+     * 商品订单的详细信息
+     * @param  [type] $orderId 订单id
+     * @return [type]          [description]
+     */
     public function orderItemList($orderId)
     {
         $select = ['oi.*', 'p.cat_b', 'p.cat_s', 's.size_name', 'c.color_name', 'p.cost_price'];
@@ -732,10 +778,213 @@ foreach ($queryAll as $key => $order) {
             ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
             ->leftJoin('meet_size as s', 'p.size_id = s.size_id')
             ->leftJoin('meet_color as c', 'p.color_id = c.color_id')
-            ->where(['order_id' => $order_id])
+            ->where(['order_id' => $orderId])
             ->andWhere(['oi.disabled' => 'false'])
             ->orderBy(['model_sn' => SORT_DESC])
             ->all();
+        return $result;
+    }
+
+    /**
+     * 用法
+     * order/order/check
+     * 
+     * 审核，更新订单状态
+     * @param  [type] $orderId 订单号
+     * @param  [type] $status  状态
+     * @return [type]          [description]
+     */
+    public function updateOrderStatus($orderId, $status)
+    {
+        //完成，作废，确认，正常
+        $statusArr = ['finish', 'dead', 'confirm', 'active'];
+        if (in_array($status, $statusArr)) {
+            $item = self::find()
+                ->where(['order_id' => $orderId])
+                ->one();
+            $item->status = $status;
+            if ($item->save()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * use
+     * order/order/ExportMaster
+     * 
+     * 该用户的所有线下的客户的预定金额
+     * @param  [type] $data 客户code拼接字符串
+     * @return [type]       [description]
+     */
+    public function getMasterCount($data)
+    {
+        $codes = explode(",", $data);
+        $result = 0;
+        $rest = (new Query)->select(['parent_id', 'agent', 'code'])
+            ->from('meet_customer')
+            ->where(['in', 'code', $codes])
+            ->indexBy('code')
+            ->all();
+        $agentArr = [];
+        foreach ($rest as $code => $value) {
+            if ($value['parent_id'] == 1) {
+                $agentArr[] = $value['agent'];
+            }
+        }
+        $orders = (new Query)->select(['o.order_id'])
+            ->from('meet_order as o')
+            ->leftJoin('meet_customer as c', 'o.customer_id = c.customer_id')
+            ->where(['in', 'c.agent', $agentArr])
+            ->andWhere(['c.parent_id' => 0])
+            ->all();
+        $orderArr = [];
+        foreach ($orders as $order) {
+            $orderArr[] = $order['order_id'];
+        }
+        $priceResult = (new Query)
+            ->select(['sum(oi.nums*p.cost_price) as newprice'])
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
+            ->where(['in', 'oi.order_id' , $orderArr])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->one();
+        $result = $priceResult['newprice'];
+        return $result;
+    }
+
+    /**
+     * 获取所有客户此大类的折扣信息
+     * @param  [type] $type_id [description]
+     * @return [type]          [description]
+     */
+    public function getAllCustomerDiscount($type_id)
+    {
+        $btc = "c.big_{$type_id}_count" . ' AS discount';
+        $bt = "c.big_{$type_id} AS starget";
+        $select = ['o.order_id', $btc, 'c.name', 'c.purchase_id', 'c.code', $bt];
+        $result = (new Query)->select($select)
+            ->from('meet_order AS o')
+            ->leftJoin('meet_customer AS c', 'c.customer_id=o.customer_id')
+            ->where(['o.disabled' => 'false'])
+            ->all();
+        
+        foreach($result as $val){
+            $val['amount'] = $this->getThisCustomerCatBigBroughtInfo($type_id,$val['order_id']);
+            $val['final_amount'] = $val['amount'] * $val['discount'] /100;
+            if(empty($val['starget'])){
+                $val['percent'] = 0 .'%';
+            }else{
+                $val['percent'] = round( $val['final_amount'] / $val['starget'] * 100, 2 ).'%';
+            }
+            $res[] = $val;
+        }
+        if(empty($res)) return [];
+        return $res;
+    }
+    /**
+     * 获取此大类的商品的购买价格之和
+     *
+     * @param $type_id
+     * @param $order_id
+     * @return int
+     */
+    public function getThisCustomerCatBigBroughtInfo($type_id, $order_id){
+        $res = (new Query)->select(['p.cost_price', 'i.nums', 'i.amount'])
+            ->from('meet_order as o')
+            ->leftJoin('meet_order_items AS i', 'i.order_id=o.order_id')
+            ->leftJoin('meet_customer AS c', 'c.customer_id=o.customer_id')
+            ->leftJoin('meet_product AS p', 'p.product_id=i.product_id')
+            ->where(['p.cat_b' => $type_id])
+            ->andWhere(['o.order_id' => $order_id])
+            ->andWhere(['i.disabled' => 'false'])
+            ->all();
+        $final = 0;
+        foreach($res as $val){
+            $final += $val['cost_price']*$val['nums'];
+        }
+        return $final;
+    }
+
+    /**
+     * 获取所有用户的折扣信息
+     * @return [type] [description]
+     */
+    public function getAllUserOrderItems()
+    {
+        $result = (new Query)->select(['o.order_id', 'c.customer_id', 'c.big_1_count', 'c.big_2_count', 'c.big_3_count', 'c.big_4_count', 'c.big_6_count'])
+            ->from('meet_order AS o')
+            ->leftJoin('meet_customer  AS c', 'c.customer_id=o.customer_id')
+            ->where(['c.disabled' => 'false'])
+            ->andWhere(['o.disabled' => 'false'])
+            ->all();
+
+        $item = [];
+        foreach($result as $val){
+            $item[$val['order_id']] = $val;
+        }
+        return $item;
+    }
+
+    /**
+     * 根据款号获取其大类(大类小类根据款号修改)
+     *
+     * @return array
+     */
+    public function getProductModelSnAndCatBig(){
+        $sql = "SELECT model_sn,cat_b FROM `meet_product` WHERE disabled='false'";
+        $result = (new Query)->select(['model_sn', 'cat_b'])
+            ->from('meet_product')
+            ->where(['disabled' => 'false'])
+            ->all();
+        $res = [];
+        foreach($result as $val){
+            $res[$val['model_sn']] = $val['cat_b'];
+        }
+        return $res;
+    }
+
+    public function getAllOrderItemsList(){
+        // $select = ['i.model_sn', 'i.nums', 'i.order_id', 's.size_no', 'c.code', 'p.cost_price', 'color.color_no'];
+        $select = ['i.model_sn', 'i.nums', 'i.order_id', 'o.customer_id', 'i.product_id'];
+        $allQuery = (new Query)->select($select)
+            ->from('meet_order AS o')
+            ->leftJoin('meet_order_items as i', 'o.order_id=i.order_id')
+            ->where(['i.disabled' => 'false'])
+            ->all();
+        $productQuery = (new Query)->select(['product_id', 'size_id', 'cost_price', 'color_id'])
+            ->from('meet_product')
+            ->indexBy('product_id')
+            ->all();
+        $customerQuery = (new Query)->select(['customer_id', 'code'])
+            ->from('meet_customer')
+            ->indexBy('customer_id')
+            ->all();
+        $sizeQuery = (new Query)->select(['size_id', 'size_no'])
+            ->from('meet_size')
+            ->indexBy('size_id')
+            ->all();
+        $colorQuery = (new Query)->select(['color_id', 'color_no'])
+            ->from('meet_color')
+            ->indexBy('color_id')
+            ->all();
+        $result = [];
+        foreach ($allQuery as $val) {
+            $arr = [];
+            $arr['model_sn'] = $val['model_sn'];
+            $arr['nums'] = $val['nums'];
+            $arr['order_id'] = $val['order_id'];
+            $arr['size_no'] = $sizeQuery[$productQuery[$val['product_id']]['size_id']]['size_no'];
+            try {
+                
+                $arr['code'] = $customerQuery[$val['customer_id']]['code'];
+            } catch (\Exception $e) {
+                var_dump($val['customer_id']);
+            }
+            $arr['cost_price'] = $productQuery[$val['product_id']]['cost_price'];
+            $arr['color_no'] = $colorQuery[$productQuery[$val['product_id']]['color_id']]['color_no'];
+            $result[] = $arr;
+        }
         return $result;
     }
 }

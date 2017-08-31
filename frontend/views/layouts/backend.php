@@ -3,6 +3,7 @@
 use yii\helpers\Url;
 use frontend\config\Menu;
 use yii\widgets\Breadcrumbs;
+use common\widgets\Alert;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -14,24 +15,24 @@ use yii\widgets\Breadcrumbs;
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- basic styles -->
-    <link href="<?= Yii::$app->request->baseUrl; ?>/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/font-awesome.min.css" />
+    <link href="/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/font-awesome.min.css" />
 
 
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/colorbox.css" />
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/ace.min.css" />
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/ace-rtl.min.css" />
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/ace-skins.min.css" />
+    <link rel="stylesheet" href="/css/colorbox.css" />
+    <link rel="stylesheet" href="/css/ace.min.css" />
+    <link rel="stylesheet" href="/css/ace-rtl.min.css" />
+    <link rel="stylesheet" href="/css/ace-skins.min.css" />
 
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/public.css" />
+    <link rel="stylesheet" href="/css/public.css" />
 
     <script type="text/javascript">
-        window.jQuery || document.write("<script src='<?= Yii::$app->request->baseUrl; ?>/js/jquery-2.0.3.min.js'>"+"<"+"script>");
+        window.jQuery || document.write("<script src='/js/jquery-2.0.3.min.js'>"+"<"+"script>");
     </script>
 
 
-    <script src="<?= Yii::$app->request->baseUrl; ?>/js/ace-extra.min.js"></script>
-
+    <script src="/js/ace-extra.min.js"></script>
+    <script src="/js/layer/layer.min.js"></script>
 </head>
 
 <body>
@@ -54,7 +55,7 @@ use yii\widgets\Breadcrumbs;
             <ul class="nav ace-nav">
                 <li class="light-blue">
                     <a data-toggle="dropdown" href="#" class="dropdown-toggle">
-                        <img class="nav-user-photo" src="<?= Yii::$app->request->baseUrl; ?>/avatars/user.jpg" alt="Jason's Photo" />
+                        <img class="nav-user-photo" src="/avatars/user.jpg" alt="Jason's Photo" />
                             <span class="user-info">
                                 <small>欢迎光临,</small>
                                 <?= Yii::$app->session['_admini']['name'];?>
@@ -173,7 +174,7 @@ use yii\widgets\Breadcrumbs;
 ]) ?>
             </div>
             <div class="page-content">
-
+<?= Alert::widget() ?>
 <?= $content;?>
                 
             </div><!-- /.page-content -->
@@ -186,35 +187,35 @@ use yii\widgets\Breadcrumbs;
 <!-- basic scripts -->
 
 <script type="text/javascript">
-    if("ontouchend" in document) document.write("<script src='<?= Yii::$app->request->baseUrl; ?>/js/jquery.mobile.custom.min.js'>"+"<"+"script>");
+    if("ontouchend" in document) document.write("<script src='/js/jquery.mobile.custom.min.js'>"+"<"+"script>");
 </script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/bootstrap.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/typeahead-bs2.min.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/typeahead-bs2.min.js"></script>
 
 
 
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery-ui-1.10.3.custom.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.ui.touch-punch.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.slimscroll.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.easy-pie-chart.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.sparkline.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/flot/jquery.flot.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/flot/jquery.flot.pie.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/flot/jquery.flot.resize.min.js"></script>
+<script src="/js/jquery-ui-1.10.3.custom.min.js"></script>
+<script src="/js/jquery.ui.touch-punch.min.js"></script>
+<script src="/js/jquery.slimscroll.min.js"></script>
+<script src="/js/jquery.easy-pie-chart.min.js"></script>
+<script src="/js/jquery.sparkline.min.js"></script>
+<script src="/js/flot/jquery.flot.min.js"></script>
+<script src="/js/flot/jquery.flot.pie.min.js"></script>
+<script src="/js/flot/jquery.flot.resize.min.js"></script>
 
 
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/ace-elements.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/ace.min.js"></script>
+<script src="/js/ace-elements.min.js"></script>
+<script src="/js/ace.min.js"></script>
 
 
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.dataTables.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.dataTables.bootstrap.js"></script>
+<script src="/js/jquery.dataTables.min.js"></script>
+<script src="/js/jquery.dataTables.bootstrap.js"></script>
 
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/bootbox.min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.easy-pie-chart.min.js"></script>
+<script src="/js/bootbox.min.js"></script>
+<script src="/js/jquery.easy-pie-chart.min.js"></script>
 
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/jquery.colorbox-min.js"></script>
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/oct/common.js"></script>
+<script src="/js/jquery.colorbox-min.js"></script>
+<script src="/js/oct/common.js"></script>
 <script>
     var url = '<?= Yii::$app->request->getHostInfo();?>';
 </script>

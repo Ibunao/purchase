@@ -67,4 +67,24 @@ class ColorModel extends \yii\db\ActiveRecord
         }
         return $item;
     }
+
+    /**
+     * 用法
+     * order/order/ImportFiles
+     * 
+     * 获取颜色列表
+     * @return [type] [description]
+     */
+    public function colorList()
+    {
+        $result = Yii::$app->cache->get('color-list');
+        if (empty($result)) {
+            $items = self::find()->asArray()->all();
+            foreach ($items as $v) {
+                $result[$v['color_name']] = $v;
+            }
+            Yii::$app->cache->set('color-list', $result, 3600*24);
+        }
+        return $result;
+    }
 }

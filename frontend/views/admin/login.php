@@ -14,11 +14,11 @@ AppAsset::register($this);
     <meta name="description" content="<?= Yii::$app->params['web_sites_title']; ?>后台" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <link href="<?= Yii::$app->request->baseUrl; ?>/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/font-awesome.min.css" />
+    <link href="/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/font-awesome.min.css" />
 
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/ace.min.css" />
-    <link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/ace-rtl.min.css" />
+    <link rel="stylesheet" href="/css/ace.min.css" />
+    <link rel="stylesheet" href="/css/ace-rtl.min.css" />
 
 </head>
 <script type="text/javascript">

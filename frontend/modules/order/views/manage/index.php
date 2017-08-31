@@ -37,7 +37,6 @@ $this->params['breadcrumbs'] = [
     }
 </style>
 <form action="" method="get">
-    <input type="hidden" name="r" value="order/manage/index">
     <div class="form-group">
         <label for="name">客户代码:</label>
         <input type="text" name="param[code]"  class="se" id="box" value="<?= !empty($param['code'])?$param['code']:''; ?>">

@@ -18,10 +18,10 @@ class FBaseController extends Controller
 
     public $totalNum;//订单总数量
     public $amount;//订单总价格
-    public $order_state;//订单状态
+    public $orderState;//订单状态
 
     public $customerId;//用户id
-    public $purcheaseId;//订购会id
+    public $purchaseId;//订购会id
 	public function init()
 	{
 		parent::init();
@@ -31,7 +31,7 @@ class FBaseController extends Controller
             exit;
         } 
         $this->customerId = Yii::$app->session->get('customer_id');
-        $this->purcheaseId = Yii::$app->session->get('purchase_id');
+        $this->purchaseId = Yii::$app->session->get('purchase_id');
         $this->orderTotal();
 	}
     /**
@@ -40,9 +40,9 @@ class FBaseController extends Controller
     public function orderTotal()
     {
         $orderModel = new OrderModel;
-        $items = $orderModel->orderItems($this->purcheaseId, $this->customerId);
+        $items = $orderModel->orderItems($this->purchaseId, $this->customerId);
         $this->totalNum = isset($items['order_row']['total_num'])?$items['order_row']['total_num']:0;
         $this->amount = isset($items['order_row']['cost_item'])?$items['order_row']['cost_item']:'0.00';
-        $this->orderNtate = isset($items['order_row']['status'])?$items['order_row']['status']:'active';
+        $this->orderState = isset($items['order_row']['status'])?$items['order_row']['status']:'active';
     }
 }

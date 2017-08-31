@@ -142,6 +142,11 @@ class CustomerModel extends \yii\db\ActiveRecord
     }
 
     /**
+     * use
+     * order/manage/index
+     * order/manage/add
+     * order/manage/userImport
+     * 
      * 显示分类
      * @return mixed
      */
@@ -176,6 +181,9 @@ class CustomerModel extends \yii\db\ActiveRecord
     }
 
     /**
+     * use
+     * order/manage/index
+     * 
      * 查询检索的数据
      * @param array $data 需要查询的数据数组
      * @param string $pageIndex 当前页码
@@ -228,6 +236,9 @@ class CustomerModel extends \yii\db\ActiveRecord
         return ['result' => $result, 'pagination' => $pagination];
     }
     /**
+     * use
+     * order/manage/add
+     * 
      * 用户新增
      * @param array $data
      * @return mixed
@@ -281,6 +292,9 @@ class CustomerModel extends \yii\db\ActiveRecord
     }
 
     /**
+     * use
+     * order/manage/export
+     * 
      * 获取所有的用户
      * @return mixed
      */
@@ -377,4 +391,17 @@ class CustomerModel extends \yii\db\ActiveRecord
         return $result = self::find()->where(['code' => $code])->asArray()->one();
     }
     
+    /**
+     * use
+     * order/manage/ajax
+     * 
+     * 检查code是否存在
+     * @param  [type] $code 客户代码
+     * @return [type]       [description]
+     */
+    public function checkCode($code)
+    {
+        $result = self::find()->where(['code'=>$code])->count();
+        return $result;
+    }
 }

@@ -58,6 +58,9 @@ class AgentModel extends \yii\db\ActiveRecord
         return $result;
     }
     /**
+     * use
+     * order/manage/UserImport
+     * 
      * 转换  code => name
      *
      * @return mixed

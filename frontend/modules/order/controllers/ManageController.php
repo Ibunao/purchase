@@ -6,18 +6,18 @@ use frontend\controllers\base\BaseController;
 use frontend\models\CustomerModel;
 use PHPExcel;
 use PHPExcel_IOFactory;
+use frontend\helpers\IoXls;
 /**
  *用户管理
  * @author        ding
  */
 class ManageController extends BaseController
 {
-    public $layout = '/backend';
     public $admin;
 
     public function actionIndex()
     {
-        $param = Yii::$app->request->get('param', 1);
+        $param = Yii::$app->request->get('param');
 
         $guestMange = new CustomerModel;
         //
@@ -41,13 +41,15 @@ class ManageController extends BaseController
         $guestModel = new CustomerModel;
         if (!empty(Yii::$app->request->post('param'))) {
             $arr = Yii::$app->request->post('param');
-            //insert
+            //插入
             $res = $guestModel->insertDatabaseOperation($arr);
             if ($res) {
-                
-                $guestModel->redirect('添加成功', 'order/manage/index');//如果成功，跳转
+                Yii::$app->session->setFlash('info', '添加成功');
+                $this->redirect('/order/manage/index');//如果成功，跳转
             } else {
-                $guestModel->breakAction('添加失败', '/admin.php?r=order/manage/index');
+                Yii::$app->session->setFlash('info', '添加失败');
+
+                $this->redirect('/order/manage/index');
             }
         }
         $insert_option = $guestModel->userFilter();//显示自带的结果
@@ -77,11 +79,10 @@ class ManageController extends BaseController
         //折扣是按照百分比的显示, 百分比就是xls的折扣写的是[50%], 而不是百分比的就会写[0.5]
         $offPrize = 'percent';
         $percentTarget = false;
-        // set_time_limit(0);
-        $postFile = !empty($_FILES["file"]) ? $_FILES['file'] : exit("请上传文件");
-
+        $postFile = !empty($_FILES["file"]['name']) ? $_FILES['file'] : exit("请上传文件");
+        //获取文件后缀
         $postFileType = pathinfo($postFile['name'], PATHINFO_EXTENSION);
-        $allowExt = array('xls', 'xlsx', 'csv');
+        $allowExt = ['xls', 'xlsx', 'csv'];
         if (!in_array($postFileType, $allowExt)) {
             exit("上传文件不支持类型，仅限传xls后缀名文件,请先下载导入模板再执行操作");
         }
@@ -101,11 +102,7 @@ class ManageController extends BaseController
 
         $newFile = Yii::$app->basePath . '/web/' . $newFolderPath . $newFileName;
         if (move_uploaded_file($_FILES['file']['tmp_name'], $newFile)) {
-            //csv 打开
-//            $handle = fopen($newFile, 'r');
-//            $result = ErpCsv::input_csv($handle);
 
-            // Yii::import('application.extensions.PHPExcel', 1);
             $objPHPExcel = new PHPExcel();
             $objPHPExcel = PHPExcel_IOFactory::createReaderForFile($newFile);
             $objPHPExcel = PHPExcel_IOFactory::load($newFile);
@@ -425,8 +422,9 @@ class ManageController extends BaseController
         $keys = array('客户ID', '是否为代理', '订货会', '客户代码', '客户名称', '手机号码', '客户类型', '省份', '地区', '订货目标', '部门类别', '负责人', '代理名称', '代理代码', '客户关系代码', '服装指标', '家居指标', '防辐射指标', '备品指标', '化妆品指标', '服装折扣', '家居折扣', '防辐射折扣', '备品折扣', '化妆品折扣');
         $customerModel = new CustomerModel();
         $result = $customerModel->getAllCustomers();
-        $export = new Io_xls();
+        $export = new IoXls();
         foreach ($result as $v) {
+            $item = [];
             $item[] = $v['customer_id'];
             $item[] = $v['parent_id'] == 1 ? "是" : "否";
             $item[] = $v['purchase_id'] == 1 ? 'OCT' : 'UKI';
@@ -453,81 +451,22 @@ class ManageController extends BaseController
             $item[] = $v['big_4_count'] . '%';
             $item[] = $v['big_6_count'] . '%';
             $data[] = $item;
-            unset($item);
         }
         $export->export_begin($keys, $filename, count($data));
         $export->export_rows($data);
         $export->export_finish();
     }
 
-    //上传代理代码
-    public function actionAgent()
+    public function actionAjax($codes)
     {
-        $this->render('agent');
-    }
-
-    public function actionImportAgent()
-    {
-        set_time_limit(0);
-        $postFile = isset($_FILES["file"]) ? $_FILES['file'] : exit("请上传文件");
-        $postFileType = pathinfo($postFile['name'], PATHINFO_EXTENSION);
-        $allowExt = array('xls', 'xlsx');
-        if (empty($postFile)) {
-            exit("请上传文件");
+        $code = trim($codes);
+        $manage = new CustomerModel();
+        $result = $manage->checkCode($code);
+        if ($result < 1) {
+            $mew = "<script>$(document).ready(function() { $('.btn-primary').show();});</script>";
+        } else {
+            $mew = "<b style='color:red'>对不起，客户代码重复，请重新输入！</b><script>$(document).ready(function() { $('.btn-primary').hide();});</script>";
         }
-
-        if (!in_array($postFileType, $allowExt)) {
-            exit("上传文件不支持类型，仅限传xls后缀名文件,请先下载导入模板再执行操作");
-        }
-
-        if (!is_uploaded_file($postFile['tmp_name'])) {
-            exit("不是通过HTP POST上传的文件");
-        }
-
-        $nowTime = time();
-        $newFileName = $nowTime . "." . $postFileType;
-        $newFolder = date("Ymd", time());
-        $transData = $newFolder . "/" . $newFileName;   //上传文件地址
-        $newFolderPath = "images/" . $newFolder . "/";  //新地址
-        if (!file_exists($newFolderPath)) mkdir($newFolderPath, 0777);
-        $newFile = Yii::app()->basePath . '/../' . $newFolderPath . '/' . $newFileName;
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $newFile)) {
-            Yii::$enableIncludePath = false; // 不自动加载
-            Yii::import('application.extensions.PHPExcel', 1);
-            $objPHPExcel = PHPExcel_IOFactory::load($newFile);
-            $result = $objPHPExcel->getActiveSheet()->toArray();
-            $len_result = count($result);
-            if ($len_result <= 1) {
-                echo "<script>alert('表中没有相关数据，请检查');</script>";
-                die;
-            }
-            $customer = new CustomerModel();
-            $list = $customer->userFilter();
-            $list['purchase'] = array(
-                Yii::app()->params['purchase_oct'],
-                Yii::app()->params['purchase_uki'],
-            );
-            $data = array();
-            for ($i = 1; $i < $len_result; $i++) {
-                $data[$result[$i][1]] = $result[$i][0];
-            }
-
-            $sql = '';
-            if (empty($data)) {
-                $customer->breakAction('请选择文件', '/admin.php?r=order/manage/agent');
-            }
-            foreach ($data as $k => $v) {
-                $sql .= ",('$k', '$v')";
-            }
-            unset($k, $v);
-            $sql = 'INSERT INTO `meet_agent` ( agent_code, agent_name) VALUES ' . substr($sql, 1);
-            $res = $customer->ModelExecute($sql);
-            if ($res) {
-                $customer->breakAction('上传成功', '/admin.php?r=order/manage/index');
-            } else {
-                $customer->breakAction('上传失败', '/admin.php?r=order/manage/agent');
-            }
-
-        }
+        echo json_encode($mew);
     }
 }

@@ -9,6 +9,7 @@ use frontend\models\ColorModel;
 use frontend\models\CatBigModel;
 use frontend\models\CatMiddleModel;
 use frontend\models\PurchaseModel;
+use frontend\models\OrderModel;
 use yii\data\Pagination;
 /**
  * This is the model class for table "{{%product}}".
@@ -611,7 +612,7 @@ class ProductModel extends \yii\db\ActiveRecord
         $result = (new Query)->select($select)
             ->from('meet_product as p')
             ->leftJoin('meet_size as s', 's.size_id = p.size_id')
-            ->where(['p.model_sn' => $model_sn])
+            ->where(['p.model_sn' => $modelSn])
             ->andWhere(['p.disabled' => 'false'])
             ->groupBy('s.size_id')
             ->all();
@@ -631,7 +632,7 @@ class ProductModel extends \yii\db\ActiveRecord
         $result = (new Query)->select($select)
             ->from('meet_product as p')
             ->leftJoin('meet_color as c', 'c.color_id = p.color_id')
-            ->where(['p.model_sn' => $model_sn])
+            ->where(['p.model_sn' => $modelSn])
             ->andWhere(['p.disabled' => 'false'])
             ->groupBy('c.color_id')
             ->all();
@@ -650,16 +651,160 @@ class ProductModel extends \yii\db\ActiveRecord
     public function getProductsCount($orderId, $modelSn)
     {
         $select = ['oi.*', 'p.wave_id', 'p.size_id', 'p.color_id', 's.size_name', 'c.color_name', 'w.wave_name', 'p.img_url', 'p.cost_price'];
-        $result = (new Query)->select([$select])
+        $result = (new Query)->select($select)
             ->from('meet_order_items as oi')
             ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
             ->leftJoin('meet_size as s', 's.size_id = p.size_id')
-            ->leftJoin('meet_color as s', 'c.color_id = p.color_id')
-            ->leftJoin('meet_wave as s', 'w.wave_id = p.wave_id')
-            ->where(['order_id' => $order_id])
-            ->andWhere(['oi.model_sn' => $model_sn])
+            ->leftJoin('meet_color as c', 'c.color_id = p.color_id')
+            ->leftJoin('meet_wave as w', 'w.wave_id = p.wave_id')
+            ->where(['order_id' => $orderId])
+            ->andWhere(['oi.model_sn' => $modelSn])
             ->andWhere(['oi.disabled' => 'false'])
             ->all();
         return $result;
+    }
+    /**
+     * use 
+     * order/order/ExportMaster
+     *
+     * 不区分订货会输出客户总订单
+     * @return [type] [description]
+     */
+    public function exportMasterAndSlave()
+    {
+        //查出有订单的客户
+        $res = (new Query)->select(['c.relation_code', 'c.customer_id'])
+            ->from('meet_order as o')
+            ->leftJoin('meet_customer as c', 'c.customer_id = o.customer_id')
+            ->where(['o.disabled' => 'false'])
+            ->andWhere(['c.disabled' => 'false'])
+            ->all();
+        if (empty($res)) {
+            return [];
+        }
+        $customerArr = [];
+        foreach ($res as $pre => $suf) {
+            $trans[$suf['customer_id']] = $suf;
+            $customerArr[] = $suf['customer_id'];
+        }
+        //批量查询
+        $orderResult = (new Query)->select(['o.order_id', 'c.target', 'c.customer_id', 'c.code', 'c.relation_code', 'c.name', 'pu.purchase_name'])
+            ->from('meet_order as o')
+            ->leftJoin('meet_customer as c', 'c.customer_id=o.customer_id')
+            ->leftJoin('meet_purchase as pu', 'pu.purchase_id = c.purchase_id')
+            ->where(['in', 'c.customer_id', $customerArr])
+            ->indexBy('customer_id')
+            ->all();
+        $orderArr = [];
+        foreach ($orderResult as $key => $value) {
+            $trans[$key] = $value['order_id'];
+            $orderArr[] = $value['order_id'];
+        }
+        $priceResult = (new Query)
+            ->select(['sum(oi.nums*p.cost_price) as newprice', 'oi.order_id'])
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
+            ->where(['in', 'oi.order_id' , $orderArr])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->groupBy('oi.order_id')
+            ->orderBy('oi.model_sn ASC')
+            ->indexBy('order_id')
+            ->all();
+        //查询订单的总额等信息
+        foreach ($trans as $customerId => $orderId) {
+            $result = $orderResult[$customerId];
+
+            $result['count'] = isset($priceResult[$orderId])?$priceResult[$orderId]['newprice']:0;
+            $rest[$customerId] = $result;
+        }
+        foreach($rest as $key => $val){
+            $arr[$val['relation_code']]['target'] = isset($arr[$val['relation_code']]['target']) ? $arr[$val['relation_code']]['target'] : 0;
+            $arr[$val['relation_code']]['count'] = isset($arr[$val['relation_code']]['count']) ? $arr[$val['relation_code']]['count'] : 0;
+            $arr[$val['relation_code']]['order_id'] = isset($arr[$val['relation_code']]['order_id']) ? $arr[$val['relation_code']]['order_id'] : "";
+            $arr[$val['relation_code']]['customer_id'] = isset($arr[$val['relation_code']]['customer_id']) ? $arr[$val['relation_code']]['customer_id'] : "";
+            $arr[$val['relation_code']]['code'] = isset($arr[$val['relation_code']]['code']) ? $arr[$val['relation_code']]['code'] : "";
+            $arr[$val['relation_code']]['name'] = isset($arr[$val['relation_code']]['name']) ? $arr[$val['relation_code']]['name'] : "";
+            $arr[$val['relation_code']]['purchase_name'] = isset($arr[$val['relation_code']]['purchase_name']) ? $arr[$val['relation_code']]['purchase_name'] : "";
+            $arr[$val['relation_code']]['target'] += $val['target'];
+            $arr[$val['relation_code']]['count'] += $val['count'];
+            $arr[$val['relation_code']]['order_id'] .= $val['order_id'].",";
+            $arr[$val['relation_code']]['customer_id'] .= $val['customer_id'].",";
+            $arr[$val['relation_code']]['code'] .= $val['code'].",";
+            $arr[$val['relation_code']]['name'] .= $val['name'].",";
+            $arr[$val['relation_code']]['purchase_name'] .= $val['purchase_name'].",";
+        }
+        return $arr;
+    }
+
+    /**
+     * use
+     * order/order/ExportMaster
+     *
+     * 
+     * 获取总指标/已定金额/已审核完成金额       可以优化
+     * @return [type] [description]
+     */
+    public function getCustomerOrderInfo()
+    {
+        //所有用户的订单真实订货量  
+        $real_target = (new Query)->select(['o.order_id', 'status'])
+            ->from('meet_order as o')
+            ->leftJoin('meet_customer as c', 'o.customer_id = c.customer_id')
+            ->where(['o.disabled' => 'false'])
+            ->andWhere(['c.disabled' => 'false'])
+            ->indexBy('order_id')
+            ->all();
+        $orderArr = [];
+        $finishOrders = [];
+        foreach ($real_target as $orderId => $value) {
+            $orderArr[] = $orderId;
+            if ($value['status'] = 'finish') {
+                $finishOrders[] = $orderId;
+            }
+        }
+        $priceResult = (new Query)
+            ->select(['sum(oi.nums*p.cost_price) as newprice'])
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
+            ->where(['in', 'oi.order_id' , $orderArr])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->one();
+        
+        //总金额
+        $real_tar = $priceResult['newprice'];
+
+        $target = (new Query)->select(['SUM(target) AS target'])
+            ->from('meet_customer')
+            ->where(['disabled' => 'false'])
+            ->one();
+        //所有用户提交审核的订货量
+        $real_target = (new Query)->select(['o.order_id'])
+            ->from('meet_order as o')
+            ->leftJoin('meet_customer as c', 'o.customer_id = c.customer_id')
+            ->where(['o.disabled' => 'false'])
+            ->andWhere(['c.disabled' => 'false'])
+            ->andWhere(['o.status' => 'finish'])
+            ->all();
+        $finishPriceResult = (new Query)
+            ->select(['sum(oi.nums*p.cost_price) as newprice'])
+            ->from('meet_order_items as oi')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id ')
+            ->where(['in', 'oi.order_id' , $finishOrders])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->one();
+
+        $finish_tar = $finishPriceResult['newprice'];
+        $result['real_target'] = $real_tar;
+        $result['des_target'] = $target['target'];
+        $result['fin_target'] = $finish_tar;
+        return $result;
+    }
+    public function getProductList($modelSn)
+    {
+        $count = self::find()->where(['model_sn' => $modelSn])
+            ->andWhere(['is_down' => '0'])
+            ->andWhere(['disabled' => 'false'])
+            ->count();
+        return $count;
     }
 }

@@ -1,10 +1,10 @@
-<link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/chosen.css" />
-<link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/datepicker.css" />
-<link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/bootstrap-timepicker.css" />
-<link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/daterangepicker.css" />
-<link rel="stylesheet" href="<?=Yii::$app->request->baseUrl; ?>/css/colorpicker.css" />
-<script type="text/javascript" src="<?=Yii::$app->request->baseUrl;?>/js/layer/layer.min.js"></script>
-<script type="text/javascript" src="<?=Yii::$app->request->baseUrl;?>/js/jquery.PrintArea.js"></script>
+<link rel="stylesheet" href="/css/chosen.css" />
+<link rel="stylesheet" href="/css/datepicker.css" />
+<link rel="stylesheet" href="/css/bootstrap-timepicker.css" />
+<link rel="stylesheet" href="/css/daterangepicker.css" />
+<link rel="stylesheet" href="/css/colorpicker.css" />
+<script type="text/javascript" src="/js/layer/layer.min.js"></script>
+<script type="text/javascript" src="/js/jquery.PrintArea.js"></script>
 <style>
     .form-group{margin-bottom: 5px;}
     .billContainer2 {

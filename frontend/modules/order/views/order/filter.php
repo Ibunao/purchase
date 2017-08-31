@@ -208,7 +208,7 @@
         <button class="btn btn-sm  btn-primary download" data-val="1">
             订单导出
         </button>
-        <button type="button" onclick="location.href='admin.php?r=order/order/ExportMaster'" class="btn btn-sm btn-primary" value="">
+        <button type="button" onclick="location.href='/order/order/export-master'" class="btn btn-sm btn-primary" value="">
             合并订单导出
         </button>
         <?php foreach(Yii::$app->params['output_discount'] as $key => $val){ ?>
@@ -299,7 +299,7 @@
         var con = confirm('此操作会让页面停止响应至少十分钟，是否继续？');
         if(con){
             alert('点击后请勿刷新页面，等待网页响应后xls自动会下载！切记勿动，勿刷新！！！！');
-            location.href='admin.php?r=order/order/DownloadOrderItemsInOrderItemsTable';
+            location.href='/order/order/download-order-items-in-order-items-table';
         }
     }
 </script>

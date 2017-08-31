@@ -35,7 +35,6 @@ class AdminController extends Controller
                 ->andWhere(['password'=>$password])
                 ->one();
             if ($user) {
-
                 $loginInfo = [
                     'user_id'=>$user['user_id'],
                     'name' => $name,

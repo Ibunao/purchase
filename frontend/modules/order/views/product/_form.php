@@ -3,12 +3,12 @@ use yii\helpers\Url;
 use yii\widgets\LinkPager;
 
 ?>
-<link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/chosen.css" />
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/chosen.jquery.min.js" ></script>
-<link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/datepicker.css" />
-<link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/bootstrap-timepicker.css" />
-<link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/daterangepicker.css" />
-<link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/colorpicker.css" />
+<link rel="stylesheet" href="/css/chosen.css" />
+<script src="/js/chosen.jquery.min.js" ></script>
+<link rel="stylesheet" href="/css/datepicker.css" />
+<link rel="stylesheet" href="/css/bootstrap-timepicker.css" />
+<link rel="stylesheet" href="/css/daterangepicker.css" />
+<link rel="stylesheet" href="/css/colorpicker.css" />
 
 <style>
     body{

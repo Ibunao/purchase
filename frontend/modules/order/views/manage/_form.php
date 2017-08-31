@@ -1,8 +1,8 @@
 <?php 
 use yii\helpers\Url;
  ?>
-<link rel="stylesheet" href="<?= Yii::$app->request->baseUrl; ?>/css/chosen.css" />
-<script src="<?= Yii::$app->request->baseUrl; ?>/js/chosen.jquery.min.js" ></script>
+<link rel="stylesheet" href="/css/chosen.css" />
+<script src="/js/chosen.jquery.min.js" ></script>
 <style>
     body{
         font-family: "Microsoft YaHei";
@@ -238,7 +238,7 @@ use yii\helpers\Url;
             var code=$("#code").val();
             $.ajax({
                 type:"post",
-                url:"/admin.php?r=order/manage/ajax&codes="+code,
+                url:"/order/manage/ajax?codes="+code,
                 dataType: "json",
                 success:function(msg){
                     $("#userinfo").html(msg);

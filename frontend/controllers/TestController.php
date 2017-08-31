@@ -45,4 +45,8 @@ class TestController extends Controller
         $end_string = 's'.$front_string;
         return $end_string;
     }
+    public function actionPath()
+    {
+        echo Yii::$app->homeUrl;
+    }
 }
