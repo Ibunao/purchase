@@ -51,9 +51,10 @@ class ProductController extends BaseController
             if ($res) {
                 $this->_clear();
                 //使用setFlash
-                $guestModel->breakAction('添加成功', "/admin.php?r=order/product/index");
+                Yii::$app->session->setFlash('info', '添加成功');
+                $this->redirect("/order/product/index");
             } else {
-                $guestModel->breakActions('添加失败');
+                Yii::$app->session->setFlash('error', '添加失败');
             }
 
         }

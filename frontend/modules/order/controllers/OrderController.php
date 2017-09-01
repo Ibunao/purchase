@@ -784,6 +784,7 @@ class OrderController extends BaseController
             $big[$val['big_id']] = $val['cat_name'];
         }
         $xls = new IoXls();
+
         $key = array(
             '客户名称', '订货会', '客户代码', $big[$big_id].'订货指标', $big[$big_id].'已订货金额', '折扣', $big[$big_id].'折扣后价格', '折扣后'.$big[$big_id].'订货指标完成率'
         );
@@ -793,7 +794,7 @@ class OrderController extends BaseController
         $all_big_target = 0; //该大类的指标
         $all_bro_money = 0; //实际已买的金额
         $all_dis_money = 0; //折扣后的价格
-        foreach($result as $val){
+        foreach($result as $k => $v){
             $data[$i]['A'] = $val['name'];
             $data[$i]['B'] = $val['purchase_id']==1?'OCT':'UKI';
             $data[$i]['C'] = $val['code'];
@@ -806,6 +807,7 @@ class OrderController extends BaseController
             $all_big_target += $val['starget'];
             $all_dis_money += $val['final_amount'];
             $xls->export_rows($data);
+            
         }
         if(empty($all_big_target)){
             $bro_percent = 0 .'%';
@@ -823,17 +825,28 @@ class OrderController extends BaseController
         $params[] = array('实际已买折扣金额占'.$big[$big_id].'订货指标', $dis_percent);
         $xls->export_rows($params);
         $xls->export_finish();
+        // ErpCsv::exportCsv(11111, $data, $fileName);
     }
 
 
     public function actionDownloadOrderItemsInOrderItemsTable()
     {
+        set_time_limit(0);
     	$orderModel = new OrderModel;
     	$customer_info = $orderModel->getAllUserOrderItems();
         $model_info = $orderModel->getProductModelSnAndCatBig();
         $order_info = $orderModel->getAllOrderItemsList();
 
-        $xls = new IoXls();
+//         $xls = new IoXls();
+// $objPHPExcel = new \PHPExcel;
+// /*以下是一些设置 ，什么作者  标题啊之类的*/  
+// $objPHPExcel->getProperties()->setCreator("转弯的阳光")  
+// ->setLastModifiedBy("转弯的阳光")  
+// ->setTitle("数据EXCEL导出")  
+// ->setSubject("数据EXCEL导出")  
+// ->setDescription("备份数据")  
+// ->setKeywords("excel")  
+// ->setCategory("result file");  
 		$key = [
 		   '商品代码',
 		   '颜色编号',
@@ -845,21 +858,43 @@ class OrderController extends BaseController
 		   '订单编号'
 		];
 		$fileName = '订单详细信息导出';
-		$xls->export_begin($key, $fileName, 0);
-		foreach($order_info as $i => $val){
-		   $data[$i]['A'] = $val['model_sn'];
-		   $data[$i]['B'] = $val['color_no'];
-		   $data[$i]['C'] = $val['size_no'];
-		   $data[$i]['D'] = $val['nums'];
-		   $data[$i]['E'] = $val['cost_price'];
-		   $data[$i]['F'] = ($customer_info[$val['order_id']]['big_'.$model_info[$val['model_sn']].'_count'] /100);
-		   $data[$i]['G'] = $val['code'];
-		   $data[$i]['H'] = $val['order_id'];
+		// $xls->export_begin($key, $fileName, 0);
+		foreach($order_info as $i => $v){
+		   $data[$i]['A'] = $v['model_sn'];
+		   $data[$i]['B'] = $v['color_no'];
+		   $data[$i]['C'] = $v['size_no'];
+		   $data[$i]['D'] = $v['nums'];
+		   $data[$i]['E'] = $v['cost_price'];
+		   $data[$i]['F'] = ($customer_info[$v['order_id']]['big_'.$model_info[$v['model_sn']].'_count'] /100);
+		   $data[$i]['G'] = $v['code'];
+		   $data[$i]['H'] = $v['order_id'];
 		   $i++;
+
+            /*以下就是对处理Excel里的数据， 横着取数据，主要是这一步，其他基本都不要改*/  
+            // $customer = ($customer_info[$v['order_id']]['big_'.$model_info[$v['model_sn']].'_count'] /100);
+            // $num=$i+1;  
+            // $objPHPExcel->setActiveSheetIndex(0)//Excel的第A列，uid是你查出数组的键值，下面以此类推  
+            // ->setCellValue('A'.$num, $v['model_sn'])     
+            // ->setCellValue('B'.$num, $v['color_no'])  
+            // ->setCellValue('C'.$num, $v['size_no'])  
+            // ->setCellValue('D'.$num, $v['nums'])  
+            // ->setCellValue('E'.$num, $v['cost_price'])  
+            // ->setCellValue('F'.$num, $customer)  
+            // ->setCellValue('G'.$num, $v['code']) 
+            // ->setCellValue('G'.$num, $v['order_id']);  
 		}
-		$xls->export_rows($data);
-		// ErpCsv::exportCsv($key, $data, $fileName);
-		$xls->export_finish();
+        // $objPHPExcel->getActiveSheet()->setTitle('User');  
+        // $objPHPExcel->setActiveSheetIndex(0);  
+        //  header('Content-Type: applicationnd.ms-excel');  
+        //  header('Content-Disposition: attachment;filename="'.$fileName.'.xlsx"');  
+        //  header('Cache-Control: max-age=0');  
+        //  $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');  
+        //  $objWriter->save('php://output');  
+        //  exit;
+		// $xls->export_rows($data);
+		// $xls->export_finish();
+
+        ErpCsv::exportCsv($key, $data, $fileName.'.csv');
     }
 	/**
 	 * 筛选框选项

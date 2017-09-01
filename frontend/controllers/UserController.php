@@ -72,4 +72,16 @@ class UserController extends Controller
         Yii::$app->cache->flush();
         echo "清除缓存";
     }
+    /**
+     * 清除所有的缓存
+     * @return [type] [description]
+     */
+    public function actionFlushCacheAll()
+    {
+        $res = Yii::$app->params['flush_cache_url'];
+        foreach ($res as $val) {
+            file_get_contents($val . '/user/cache');
+        }
+        echo "清除所有的缓存";
+    }
 }

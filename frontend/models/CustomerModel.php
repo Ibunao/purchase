@@ -243,7 +243,7 @@ class CustomerModel extends \yii\db\ActiveRecord
      * @param array $data
      * @return mixed
      */
-    public function insertDatabaseOperation($data = [])
+    public function insertDbOperation($data = [])
     {
         if(($data['big_1']+$data['big_2']+$data['big_3']+$data['big_4']+$data['big_6'] == '100') && !empty($data['target'])){
             $data['big_1'] = (string)round($data['target'] * $data['big_1'] /100 , 2);
@@ -305,6 +305,9 @@ class CustomerModel extends \yii\db\ActiveRecord
     }
 
     /**
+     * use 
+     * order/manage/userimport
+     * 
      * 转换
      *
      * @return mixed
@@ -403,5 +406,122 @@ class CustomerModel extends \yii\db\ActiveRecord
     {
         $result = self::find()->where(['code'=>$code])->count();
         return $result;
+    }
+    /**
+     * use
+     * order/manage/Update
+     * 
+     * 更新用户信息
+     * @param  [type] $data [description]
+     * @return [type]       [description]
+     */
+    public function updateDbOperation($data)
+    {
+        if(($data['big_1']+$data['big_2']+$data['big_3']+$data['big_4']+$data['big_6'] == '100') && !empty($data['target'])){
+            $data['big_1'] = (string)round($data['target'] * $data['big_1'] /100 , 2);
+            $data['big_2'] = (string)round($data['target'] * $data['big_2'] /100 , 2);
+            $data['big_3'] = (string)round($data['target'] * $data['big_3'] /100 , 2);
+            $data['big_4'] = (string)round($data['target'] * $data['big_4'] /100 , 2);
+            $data['big_6'] = (string)round($data['target'] * $data['big_6'] /100 , 2);
+        }
+        if(empty($data['big_1_count'])){
+            $data['big_1_count'] = 100;
+        }
+        if(empty($data['big_2_count'])){
+            $data['big_2_count'] = 100;
+        }
+        if(empty($data['big_3_count'])){
+            $data['big_3_count'] = 100;
+        }
+        if(empty($data['big_4_count'])){
+            $data['big_4_count'] = 100;
+        }
+        if(empty($data['big_6_count'])){
+            $data['big_6_count'] = 100;
+        }
+        $customer_id = $data['id'];
+        unset($data['id']);
+        $agentResult = (new Query)->from('meet_agent')->where(['agent_code' => $data['leader_name']])->one();
+
+        $data['leader_name'] = '';
+        $data['agent'] = '';
+        if (!empty($agentResult)) {
+            $data['leader_name'] = $agentResult['agent_name'];
+            $data['agent'] = $agentResult['agent_code'];
+        }
+
+        $data['parent_id'] = 0;
+        if (!empty($data['agent']) && $agentResult['agent_code'] == $data['code']) {
+            $data['parent_id'] = 1;
+        }
+
+        if (!empty($data['password'])) {
+            $data['password'] = md5(md5($data['password']));
+        }else{
+            $data['password'] = md5(md5(substr($data['mobile'], -4)));
+        }
+
+        //用户定过货则不可修改该用户所参与的订货会与用户名称
+        $res = (new Query)->from('meet_order')->where(['customer_id' => $customer_id])->count();
+        if($res >=1 ){
+            unset($data['purchase_id']);
+            unset($data['customer_name']);
+            unset($data['code']);
+        }
+        $obj = self::find()->where(['customer_id' => $customer_id])->one();
+        $obj->setAttributes($data);
+        $rest = $obj->save();
+        if ($rest) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * use
+     * order/manage/update
+     * 
+     * 查询用户信息
+     * @param  [type] $id [description]
+     * @return [type]     [description]
+     */
+    public function selectDbOperation($id)
+    {
+        if (empty($id)) {
+            echo "<script>alert('出错,缺少参数');history.go(-1);</script>";
+            die;
+        }
+        $res = (new Query)->from('meet_customer as a')
+            ->leftJoin('meet_agent as b', 'a.agent = b.agent_code')
+            ->where(['a.customer_id' => $id])
+            ->one();
+        if (empty($res)) {
+            echo "<script>alert('暂无此用户信息');history.go(0);</script>";
+            die;
+        }
+        if($res['target'] != '0.00') {
+            $res['big_1'] = round($res['big_1'] / $res['target'] * 100, 2);
+            $res['big_2'] = round($res['big_2'] / $res['target'] * 100, 2);
+            $res['big_3'] = round($res['big_3'] / $res['target'] * 100, 2);
+            $res['big_4'] = round($res['big_4'] / $res['target'] * 100, 2);
+            $res['big_6'] = round($res['big_6'] / $res['target'] * 100, 2);
+        }
+
+        if(empty($data['big_1_count'])){
+            $data['big_1_count'] = 100;
+        }
+        if(empty($data['big_2_count'])){
+            $data['big_2_count'] = 100;
+        }
+        if(empty($data['big_3_count'])){
+            $data['big_3_count'] = 100;
+        }
+        if(empty($data['big_4_count'])){
+            $data['big_4_count'] = 100;
+        }
+        if(empty($data['big_6_count'])){
+            $data['big_6_count'] = 100;
+        }
+        return $res;
     }
 }

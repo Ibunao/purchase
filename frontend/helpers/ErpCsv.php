@@ -37,7 +37,7 @@ class ErpCsv
      * @param array $data
      * @param $filename
      */
-    public static function exportCsv($csv_header,Array $data,$filename='')
+    public static function exportCsv(Array $csv_header,Array $data,$filename='')
     {
         $filename =$filename?$filename:date('Ymd').'.csv'; //设置文件名
         header("Content-type:text/csv");
@@ -45,14 +45,19 @@ class ErpCsv
         header('Cache-Control:must-revalidate,post-check=0,pre-check=0');
         header('Expires:0');
         header('Pragma:public');
-        echo iconv('utf-8','gb2312',$csv_header) . "\n";
+        foreach ($csv_header as $k => $v) {
+            $csv_header[$k] = iconv('utf-8','gb2312',$v);
+        }
+        echo implode(',', $csv_header) . "\n";
+        $str = '';
         foreach($data as $v){
             foreach ($v as $key => $col){
                 $v[$key] = iconv('utf-8','gb2312//IGNORE',$col);
             }
-            $str = implode(',',$v);
-            echo $str. "\n";
+            $abc = implode(',',$v);
+            $str .= $abc. "\n";
         }
+        echo $str;
     }
 
 

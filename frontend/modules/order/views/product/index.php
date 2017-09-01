@@ -178,7 +178,7 @@ $this->params['breadcrumbs'] = [
 
         <div class="button-s-r">
             <button class="btn btn-primary  btn-xs" type="submit">搜索</button>
-            <button class="btn btn-primary  btn-xs"><a href="admin.php?r=order/product/index" style="color: #fff;text-decoration: none;">清空</a></button>
+            <button class="btn btn-primary  btn-xs"><a href="/order/product/index" style="color: #fff;text-decoration: none;">清空</a></button>
         </div>
     </form>
 <div class="form-group">

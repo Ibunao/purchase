@@ -298,11 +298,13 @@ class ManageController extends BaseController
                 $res_str .= "<p><span><b>客户代码有重复，请检查</b></span></p>";
             }
             if (empty($res_str)) {
-                $res = $this->uploadCsv($newFile, $offPrize, $percentTarget, $result);
+                $res = $this->addCsvData($percentTarget, $result);
                 if ($res) {
-                    $customer->redirect(['/order/manage/index']);//上传成功
+                    Yii::$app->session->setFlash('info', '上传成功');
+                    $this->redirect(['/order/manage/index']);//上传成功
                 } else {
-                    $customer->redirect(['/order/manage/import']);//上传失败
+                    Yii::$app->session->setFlash('info', '上传失败');
+                    $this->redirect(['/order/manage/import']);//上传失败
                 }
             } else {
                 $this->render('errordetail', array(
@@ -314,14 +316,11 @@ class ManageController extends BaseController
 
     /**
      * 
-     * 上传CSV数据
-     *
-     * @param $file_address
-     * @param $offPrize
+     * 添加上传的csv文件的数据  客户数据
      * @param $percentTarget
      * @return bool
      */
-    public function uploadCsv($file_address, $offPrize, $percentTarget, $result)
+    public function addCsvData($percentTarget, $result)
     {
         $len_result = count($result);
 
@@ -457,6 +456,11 @@ class ManageController extends BaseController
         $export->export_finish();
     }
 
+    /**
+     * Ajax 检查客户代码是否存在
+     * @param  [type] $codes [description]
+     * @return [type]        [description]
+     */
     public function actionAjax($codes)
     {
         $code = trim($codes);
@@ -469,4 +473,63 @@ class ManageController extends BaseController
         }
         echo json_encode($mew);
     }
+
+    /**
+     * 客户修改
+     */
+    public function actionUpdate()
+    {
+        if (!Yii::$app->params['update_customer_info']) {
+            echo "502 forbidding";
+            die;
+        }
+        $user_id = Yii::$app->request->get('id', '');
+        $guestModel = new CustomerModel();//实例化一个模型
+        if ($_POST) {
+            $arr = $_POST['param'];
+            $res = $guestModel->updateDbOperation($arr);//修改
+            if ($res) {
+                Yii::$app->session->setFlash('info', '修改成功');
+                return $this->redirect('/order/manage/index');
+            } else {
+                echo "<script>alert('出错');</script>";
+                die;
+            }
+        }
+        $insert_option = $guestModel->userFilter();//显示自带的结果
+        $select_result = $guestModel->selectDbOperation($user_id);//查找该用户的数据结果
+        return $this->render('update', array(
+            'insert_option' => $insert_option,
+            'select_result' => $select_result,
+        ));
+    }
+    /**
+     * 客户复制页面
+     */
+    public function actionCopy()
+    {
+        $userId = isset($_GET['id']) ? $_GET['id'] : '';
+        $guestModel = new CustomerModel();//实例化一个模型
+        if ($_POST) {
+            $arr = $_POST['param'];
+            unset($arr['id']);
+            $res = $guestModel->insertDbOperation($arr);//新增操作
+            if ($res) {
+                Yii::$app->session->setFlash('info', '复制成功');
+                return $this->redirect('/order/manage/index');
+            } else {
+                Yii::$app->session->setFlash('error', '复制失败');
+                echo "<script>history.go(0);</script>";
+                die;
+            }
+        }
+        $insert_option = $guestModel->userFilter();//显示自带的结果
+        $select_result = $guestModel->selectDbOperation($userId);//查找该用户的数据结果
+        // var_dump($select_result);exit;
+        return $this->render('copy', array(
+            'insert_option' => $insert_option,
+            'select_result' => $select_result,
+        ));
+    }
+
 }

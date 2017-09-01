@@ -39,8 +39,14 @@ class IoXls
     public function export_begin($keys, $type, $count)
     {
 
-        $this->download($type . '.xls');
-        echo '<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><style>td{vnd.ms-excel.numberformat:@}</style></head>';
+        $this->download($type . '.xlsx');
+        echo ' 
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+            <style>
+                td{vnd.ms-excel.numberformat:@}
+            </style>
+        </head>';
         echo '<table width="100%" border="1">';
         echo '<tr><th filter=all>' . implode('</th><th filter=all>', $keys) . "</th></tr>\r\n";
         flush();
