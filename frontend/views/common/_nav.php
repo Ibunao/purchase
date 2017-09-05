@@ -1,13 +1,17 @@
+<?php 
+use frontend\models\PublicModel;
+
+ ?>
 <!-- 左侧导航-->
 <nav id="menu" class="mm_menu">
     <ul class="mm_list mb60" id="mmList">
     <!-- 二级分类 -->
-        <?php foreach (Cache::cateList() as $v): ?>
+        <?php foreach (PublicModel::cateList() as $v): ?>
         <li class="menu">
             <ul>
                 <li class="level0">
-                    <a href="/default/index?c_id=<?php echo $v['id'];?>" <?php if ($v['id'] == $b_id):?>class="curSelected"<?php endif;?>>
-                        <span><?php echo $v['name'];?></span>
+                    <a href="/default/index?c_id=<?= $v['id'];?>" <?php if ($v['id'] == $b_id):?>class="curSelected"<?php endif;?>>
+                        <span><?= $v['name'];?></span>
                     </a>
                 </li>
                 <?php if ($v['child']):?>
@@ -16,9 +20,9 @@
                         <?php foreach ($v['child'] as $vv):?>
                         <?php if ($vv['num']):?>
                         <li>
-                            <a href="/default/index?c_id=<?php echo $v['id'].','.$vv['id'];?>" class="level1 <?php if ($c_id == $vv['id']):?>curSelectedNode<?php endif;?>">
-                                <span title="" class="cat_num">(<?php echo $vv['num'];?>)</span>
-                                <span><?php echo $vv['name'];?></span>
+                            <a href="/default/index?c_id=<?= $v['id'].','.$vv['id'];?>" class="level1 <?php if ($c_id == $vv['id']):?>curSelectedNode<?php endif;?>">
+                                <span title="" class="cat_num">(<?= $vv['num'];?>)</span>
+                                <span><?= $vv['name'];?></span>
                             </a>
                         </li>
                         <?php endif;?>
@@ -44,49 +48,49 @@
         </li>
         <li class="hd_nav_fLevel fl">
             <a href="javascript:void(0)" onClick="nav_toggle(this);">
-                <?php echo '季节';?>
+                <?= '季节';?>
                 <label class="nav_trgl nav_down_trgl"></label>
             </a>
             <ul class="hd_nav_semi home-season">
                 <li>
                     <!-- 季节链接 -->
-                    <a href="<?php echo $this->urlParams(array('sd'=>0))?>">全部季节</a>
+                    <a href="<?= $this->context->urlParams(array('sd'=>0))?>">全部季节</a>
                 </li>
-                <?php foreach ($this->season as $k=>$v):?>
-                <li><a href="<?php echo $this->urlParams(array('sd'=>$k.'_'.$v))?>"><?php echo $v;?></a></li>
+                <?php foreach ($this->context->season as $k=>$v):?>
+                <li><a href="<?= $this->context->urlParams(array('sd'=>$k.'_'.$v))?>"><?= $v;?></a></li>
                 <?php endforeach;?>
             </ul>
         </li>
         <li class="hd_nav_fLevel fl">
             <a href="javascript:void(0)" onClick="nav_toggle(this);">
-                <?php echo '波段';?>
+                <?= '波段';?>
                 <label class="nav_trgl"></label></a>
             <ul class="hd_nav_semi home-wave">
-                <li><a href="<?php echo $this->urlParams(array('wv'=>0))?>">全部波段</a></li>
-                <?php foreach ($this->wave as $k=>$v):?>
-                    <li><a href="<?php echo $this->urlParams(array('wv'=>$k.'_'.$v))?>"><?php echo $v;?></a></li>
+                <li><a href="<?= $this->context->urlParams(array('wv'=>0))?>">全部波段</a></li>
+                <?php foreach ($this->context->wave as $k=>$v):?>
+                    <li><a href="<?= $this->context->urlParams(array('wv'=>$k.'_'.$v))?>"><?= $v;?></a></li>
                 <?php endforeach;?>
             </ul>
         </li>
         <li class="hd_nav_fLevel fl">
             <a  href="javascript:void(0)" onClick="nav_toggle(this);">
-                <?php echo '等级';?>
+                <?= '等级';?>
                 <label class="nav_trgl"></label></a>
             <ul class="hd_nav_semi home-level">
-                <li><a href="<?php echo $this->urlParams(array('lv'=>0))?>">全部等级</a></li>
-                <?php foreach ($this->level as $k=>$v):?>
-                    <li><a href="<?php echo $this->urlParams(array('lv'=>$k.'_'.$v))?>"><?php echo $v;?></a></li>
+                <li><a href="<?= $this->context->urlParams(array('lv'=>0))?>">全部等级</a></li>
+                <?php foreach ($this->context->level as $k=>$v):?>
+                    <li><a href="<?= $this->context->urlParams(array('lv'=>$k.'_'.$v))?>"><?= $v;?></a></li>
                 <?php endforeach;?>
             </ul>
         </li>
         <li class="hd_nav_fLevel fl">
             <a  href="javascript:void(0)" onClick="nav_toggle(this);">
-                <?php echo '价格带';?>
+                <?= '价格带';?>
                 <label class="nav_trgl"></label></a>
             <ul class="hd_nav_semi home-price-level">
-                <li><a href="<?php echo $this->urlParams(array('plv'=>0))?>">全部价格带</a></li>
-                <?php foreach ($this->parice_level as $k=>$v):?>
-                    <li><a href="<?php echo $this->urlParams(array('plv'=>$k.'_'.$v))?>"><?php echo $v;?></a></li>
+                <li><a href="<?= $this->context->urlParams(array('plv'=>0))?>">全部价格带</a></li>
+                <?php foreach ($this->context->parice_level as $k=>$v):?>
+                    <li><a href="<?= $this->context->urlParams(array('plv'=>$k.'_'.$v))?>"><?= $v;?></a></li>
                 <?php endforeach;?>
             </ul>
         </li>
@@ -102,9 +106,9 @@
                 <label class="nav_trgl"></label>
             </a>
             <ul class="hd_nav_semi">
-                <li><a href="<?php echo $this->urlParams(array('or'=>0))?>">全部</a></li>
-                <li><a href="<?php echo $this->urlParams(array('or'=>1))?>">已订</a></li>
-                <li><a href="<?php echo $this->urlParams(array('or'=>2))?>">未订</a></li>
+                <li><a href="<?= $this->context->urlParams(array('or'=>0))?>">全部</a></li>
+                <li><a href="<?= $this->context->urlParams(array('or'=>1))?>">已订</a></li>
+                <li><a href="<?= $this->context->urlParams(array('or'=>2))?>">未订</a></li>
             </ul>
         </li>
         <li class="nav_search fl">
@@ -116,17 +120,17 @@
             </form>
         </li>
         <li class="hd_nav_fLevel_bt fl <?php if (!$model['hits'] && !$model['price']):?>selected<?php endif;?>">
-            <a href="<?php echo $this->urlParams(array('price'=>0,'hits'=>0))?>">默认</a>
+            <a href="<?= $this->context->urlParams(array('price'=>0,'hits'=>0))?>">默认</a>
         </li>
         <li class="hd_nav_fLevel_bt fl <?php if ($model['hits']):?>selected<?php endif;?>">
-            <a href="<?php echo $this->urlParams(array('hits'=>$model['hits_f'],'price'=>0))?>">人气
+            <a href="<?= $this->context->urlParams(array('hits'=>$model['hits_f'],'price'=>0))?>">人气
                 <?php if ($model['hits']):?>
                     <label class="sorting_label <?php if ($model['hits'] == 2):?>sort_a<?php endif;?>"></label>
                 <?php endif;?>
             </a>
         </li>
         <li class="hd_nav_fLevel_bt fl <?php if ($model['price']):?>selected<?php endif;?>">
-            <a href="<?php echo $this->urlParams(array('price'=>$model['price_f'],'hits'=>0))?>">价格
+            <a href="<?= $this->context->urlParams(array('price'=>$model['price_f'],'hits'=>0))?>">价格
                 <?php if ($model['price']):?>
                 <label class="sorting_label <?php if ($model['price'] == 2):?>sort_a<?php endif;?>"></label>
                 <?php endif;?>

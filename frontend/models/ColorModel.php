@@ -52,7 +52,7 @@ class ColorModel extends \yii\db\ActiveRecord
     public function getColor()
     {
         $result = self::find()
-            ->select(['color_id', 'color_no', 'color_name'])
+            ->select(['color_id', 'color_no', 'color_name', 'scheme_id'])
             ->groupBy('color_id')
             ->asArray()
             ->all();
@@ -64,6 +64,14 @@ class ColorModel extends \yii\db\ActiveRecord
         $item = [];
         foreach( $result as  $k => $v) {
             $item[$v['color_id']] = $v;
+        }
+        return $item;
+    }
+    public function transColorNo(){
+        $result = $this->getColor();
+        $item = [];
+        foreach( $result as  $k => $v) {
+            $item[$v['color_no']] = $v;
         }
         return $item;
     }

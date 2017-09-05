@@ -4,6 +4,7 @@ namespace frontend\controllers;
 use Yii;
 use yii\web\Controller;
 use frontend\models\CustomerModel;
+use frondent\models\PublicModel;
 /**
  * 前台登录页
  *
@@ -78,10 +79,7 @@ class UserController extends Controller
      */
     public function actionFlushCacheAll()
     {
-        $res = Yii::$app->params['flush_cache_url'];
-        foreach ($res as $val) {
-            file_get_contents($val . '/user/cache');
-        }
-        echo "清除所有的缓存";
+        PublicModel::flushCacheAll();
     }
+    
 }

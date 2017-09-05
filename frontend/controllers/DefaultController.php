@@ -9,6 +9,50 @@ use frontend\models\ProductModel;
  */
 class DefaultController extends FBaseController
 {
+    public $purchase;
+    public $brand;
+    public $color;
+    public $size;
+    public $cat_b;
+    public $cat_m;
+    public $cat_s;
+    public $season;
+    public $level;
+    public $scheme;
+    public $wave;
+    public $type;
+    public $parice_level;
+    public $route = 'default/index';
+
+    public function init()
+    {
+        parent::init();
+        $productModel = new ProductModel();
+        $this->purchase = $productModel->tableValue('purchase', 'purchase_name', 'purchase_id');
+        $this->brand = $productModel->tableValue('brand', 'brand_name', 'brand_id');
+        $this->cat_b = $productModel->tableValue('cat_big', 'cat_name', 'big_id');
+        $this->cat_m = $productModel->tableValue('cat_middle', 'cat_name', 'middle_id');
+        $this->cat_s = $productModel->tableValue('cat_small', 'cat_name', 'small_id');
+        $this->wave = $productModel->tableValue('wave', 'wave_name', 'wave_id');
+        $this->scheme = $productModel->tableValue('scheme', 'scheme_name', 'scheme_id');
+        $this->season = $productModel->tableValue('season', 'season_name', 'season_id');
+        $this->color = $productModel->tableValue('color', 'color_name', 'color_id');
+        $this->size = $productModel->tableValue('size', 'size_name', 'size_id');
+        $this->level = $productModel->tableValue('level', 'level_name', 'level_id');
+        $this->type = $productModel->tableValue('type', 'type_name', 'type_id');
+        $this->parice_level = array(
+            1 => '0-99',
+            2 => '100-199',
+            3 => '200-299',
+            4 => '300-399',
+            5 => '400-499',
+            6 => '500-999',
+            7 => '1k-1.5k',
+            8 => '1.5k-2k',
+            9 => '2k以上',
+        );
+
+    }
     /**
      * 
      * 示例
@@ -33,16 +77,16 @@ class DefaultController extends FBaseController
     	//搜索条件
     	$conArr = $model = [];
     	//小分类 大分类
-    	$s_id = $b_id = 0;
+    	$c_id = $b_id = 0;
     	if ($c_ids) {
     	    $cat_arr = explode(',', $c_ids);
 
     	    if (isset($cat_arr[0])) $b_id = $cat_arr[0];
-    	    if (isset($cat_arr[1])) $s_id = $cat_arr[1];
+    	    if (isset($cat_arr[1])) $c_id = $cat_arr[1];
 
     	    if ($c_id) {
     	        $conArr[] = 'b_id_' . $b_id;
-    	        $conArr[] = 's_id_' . $s_id;
+    	        $conArr[] = 'c_id_' . $c_id;
     	    } elseif ($b_id) {
     	        $conArr[] = 'b_id_' . $b_id;
     	    }
@@ -90,14 +134,14 @@ class DefaultController extends FBaseController
     	$model['or'] = $or;
 
     	if ($page > 1) {
-    	    echo $this->renderPartial('ajaxindex', array('model' => $model, 'c_id' => $c_id, 'b_id' => $b_id,'res'=>$res));
+    	    return $this->renderPartial('ajaxindex', array('model' => $model, 'c_id' => $c_id, 'b_id' => $b_id,'res'=>$res));
     	} else {
-    	    $this->render('index', 
+    	    return $this->render('index', 
     	    	[
 	    	    	'model' => $model, 
 	    	    	'c_id' => $c_id, 
 	    	    	'b_id' => $b_id, 
-	    	    	'serial_num' => $serial_num,
+	    	    	'serial_num' => $serialNum,
 	    	    	'res'=>$res
     	    	]);
     	}

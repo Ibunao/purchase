@@ -44,7 +44,7 @@
                     <span class="num_pd_list fl"><?php echo $v['serial_num'];?>.</span>
                 </div>
                 <a href="#inline_<?php echo $v['serial_num'];?>" class="fancybox_img">
-                    <img class="pd_list_pic" src="<?php if($v['is_down']=='0'){  echo Yii::app()->params['img_url'].$v['img_url']; }else{
+                    <img class="pd_list_pic" src="<?php if($v['is_down']=='0'){  echo Yii::$app->params['img_url'].$v['img_url']; }else{
                         echo "/images/default.jpg";
                      }?>">
                 </a>
@@ -89,7 +89,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">颜色:</td>
-                                    <td><?php echo $this->color[$v['color_id']];?></td>
+                                    <td><?php echo $this->context->color[$v['color_id']];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -105,7 +105,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">波段:</td>
-                                    <td><?php echo $this->wave[$v['wave_id']];?></td>
+                                    <td><?php echo $this->context->wave[$v['wave_id']];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -123,7 +123,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tbody><tr>
                                     <td class="pd_list_title_s">款式:</td>
-                                    <td><?php echo $this->level[$v['level_id']];?></td>
+                                    <td><?php echo $this->context->level[$v['level_id']];?></td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -142,7 +142,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">类型:</td>
-                                    <td><?php echo $this->type[$v['type_id']]; ?></td>
+                                    <td><?php echo $this->context->type[$v['type_id']]; ?></td>
                                 </tr>
                             </table>
                         </td>
@@ -154,7 +154,7 @@
         <div class="load-div">
             <!--滚动加载-->
             <p class="y_loading_easy" id="J_loadmore"><i class="dot"></i>努力加载中...</p>
-            <input type="hidden" value="<?php echo $this->urlParams(array('next'=>1, 'serial_num' => $serial_num));?>" id="url">
+            <input type="hidden" value="<?php echo $this->context->urlParams(array('next'=>1, 'serial_num' => $serial_num));?>" id="url">
             <!--滚动加载-->
         </div>
     </div>

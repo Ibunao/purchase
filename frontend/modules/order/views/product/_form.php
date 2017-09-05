@@ -517,12 +517,12 @@ use yii\widgets\LinkPager;
             console.log(model_sn);
             $.ajax({
                 type: "get",
-                url: "/admin.php?r=order/product/AjaxCheckModelSnExist&modelSn="+model_sn,
+                url: "/order/product/ajax-check-modelsn-exist?modelSn="+model_sn,
                 dataType: "json",
                 success:function (data) {
                     if(data.code == 200){
                         $("#modelSn").val("");
-                        location.href = "admin.php?r=order/product/change&modelSn="+data.data;
+                        location.href = "/order/product/change?modelSn="+data.data;
                     }
                 }
             });
@@ -535,7 +535,7 @@ use yii\widgets\LinkPager;
             var color    = $("#form-field-select-3").val();
             $.ajax({
                 type: "get",
-                url: "/admin.php?r=order/product/AjaxCheckSchemeColorExist&scheme="+scheme+"&color="+color,
+                url: "/order/product/ajax-check-scheme-color-exist?scheme="+scheme+"&color="+color,
                 dataType: "json",
                 success:function (data) {
                     if(data.code == 400){
@@ -547,14 +547,15 @@ use yii\widgets\LinkPager;
                     }
                 }
             });
+            // 不存在的，model_sn 已经判断过了
             $.ajax({
                 type: "get",
-                url: "/admin.php?r=order/product/AjaxCheckModelSnAndColor&model_sn="+model_sn+"&color="+color,
+                url: "/order/product/ajax-check-modelsn-and-color?model_sn="+model_sn+"&color="+color,
                 dataType: "json",
                 success:function (data) {
                     if(data.code == 200){
                         $(this).removeAttr("selected");
-                        location.href = "admin.php?r=order/product/update&serial_num="+data.data;
+                        location.href = "/order/product/update?serial_num="+data.data;
                     }
                 }
             });
@@ -568,7 +569,7 @@ use yii\widgets\LinkPager;
             }
             $.ajax({
                 type: "get",
-                url: "/admin.php?r=order/product/ajaxSizeGroupGetSize&sizeGroup="+sizeGroup,
+                url: "/order/product/ajax-size-group-getsize?sizeGroup="+sizeGroup,
                 dataType: "json",
                 success:function (data) {
                     if(data.code == 200){
@@ -591,7 +592,7 @@ use yii\widgets\LinkPager;
             }
             $.ajax({
                 type: "get",
-                url: "/admin.php?r=order/product/AjaxCatMiddle&catBig="+cat,
+                url: "/order/product/ajax-cat-middle?catBig="+cat,
                 dataType: "json",
                 data: cat,
                 success:function (data) {
@@ -613,7 +614,7 @@ use yii\widgets\LinkPager;
             });
 //            $.ajax({
 //                type: "get",
-//                url: "/admin.php?r=order/product/AjaxCatSeason&catBig="+cat,
+//                url: "/order/product/AjaxCatSeason&catBig="+cat,
 //                dataType: "json",
 //                data: cat,
 //                success:function (data) {
@@ -637,7 +638,7 @@ use yii\widgets\LinkPager;
 //            }
 //            $.ajax({
 //                type: "get",
-//                url: "/admin.php?r=order/product/AjaxCatSmall&catSmall="+cat,
+//                url: "/order/product/AjaxCatSmall&catSmall="+cat,
 //                dataType: "json",
 //                data: cat,
 //                success:function (data) {

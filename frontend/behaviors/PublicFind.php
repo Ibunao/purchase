@@ -17,6 +17,11 @@ class PublicFind extends Behavior
     	// 	$result = $this->object->find()->asArray()->all();
     	// 	Yii::$app->cache->set($key, $result);
     	// }
-        return $this->object->find()->indexBy($index)->asArray()->all();
+        if (empty($index)) {
+            $result = $this->object->find()->asArray()->all();
+        }else{
+            $result = $this->object->find()->indexBy($index)->asArray()->all();
+        }
+        return $result;
     }
 }

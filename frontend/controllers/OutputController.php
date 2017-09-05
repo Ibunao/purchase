@@ -6,7 +6,7 @@ use yii\web\Controller;
 use yii\db\Query;
 use frontend\helpers\IoXls;
 /**
- * Admin controller
+ * 临时输出
  */
 class OutputController extends Controller
 {

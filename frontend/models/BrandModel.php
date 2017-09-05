@@ -60,4 +60,13 @@ class BrandModel extends \yii\db\ActiveRecord
         }
         return $item;
     }
+    public function transBrandName()
+    {
+        $result = $this->getBrand();
+        $item = [];
+        foreach( $result as  $k => $v) {
+            $item[$v['brand_name']] = $v;
+        }
+        return $item;
+    }
 }

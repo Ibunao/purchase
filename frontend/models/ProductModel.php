@@ -11,6 +11,7 @@ use frontend\models\CatMiddleModel;
 use frontend\models\PurchaseModel;
 use frontend\models\OrderModel;
 use yii\data\Pagination;
+
 /**
  * This is the model class for table "{{%product}}".
  *
@@ -213,6 +214,11 @@ class ProductModel extends \yii\db\ActiveRecord
         return $result;
     }
     /**
+     * use
+     * order/product/add
+     * order/product/update
+     * order/product/copy
+     * 
      * 获取增加／修改产品时所有的可选项
      * @param  array  $data [description]
      * @return [type]       [description]
@@ -266,11 +272,7 @@ class ProductModel extends \yii\db\ActiveRecord
                 ->from('meet_season_big')
                 ->where(['big_id' => $data['cat_b']])
                 ->all();
-            //源代码没有添加条件，可放置则不用放在if里面
-            // $result['catMiddle'] = (new Query)->select(['middle_id', 'cat_name'])
-            //     ->from('meet_cat_middle')
-            //     ->where(['parent_id' => $data['cat_b']])
-            //     ->all();
+
             //大分类含有的小类
             $result['catSmall'] = (new Query)->select(['small_id', 'small_cat_name AS cat_name'])
                 ->from('meet_cat_big_small')
@@ -289,15 +291,11 @@ class ProductModel extends \yii\db\ActiveRecord
         return $result;
     }
 
+
     /**
-     * 修改商品操作
-     * @param $param
-     * @param $moreData
-     * @param $lessData
-     * @param $serialNum
-     * @return bool
-     */
-    /**
+     * use
+     * order/product/update
+     * 
      * 修改商品
      * @param  [type] $param     产品参数
      * @param  [type] $moreData  多的尺寸
@@ -333,30 +331,31 @@ class ProductModel extends \yii\db\ActiveRecord
         // }
 
         $param['size'] = $moreData;
-        $sql_add = "";
 
         //新增尺码数据
         if (!empty($moreData)) {
-            $sql_add .= $this->_addOnlyAddProducts($param, $moreData, $serialNum, $purchaseId);
+            $addResult= $this->_addOnlyAddProducts($param, $moreData, $serialNum, $purchaseId);
         }
 
         //下架该尺码
         if (!empty($lessData)) {
-             $this->_updateProducts($lessData, $serialNum);
+             $this->_updateProducts($lessData, $serialNum, $purchaseId);
         }
 
-        //执行上面返回的sql
-        if (!empty($sql_add)) {
-            $this->ModelExecute($sql_add);
-        }
 
         //修改其他商品基本数据
-        if ($this->_updateAllSerialNumProduct($param, $serialNum)) {
-            return true;
-        } else {
-            return false;
-        }
+        return $this->_updateAllSerialNumProduct($param, $serialNum, $purchaseId);
+
     }
+    /**
+     * use
+     * updateProductOperation
+     * 
+     * @param [type] $param      参数     
+     * @param [type] $moreData   要添加的size id
+     * @param [type] $serialNum  流水号
+     * @param [type] $purchaseId 订货会类型
+     */
     private function _addOnlyAddProducts($param, $moreData, $serialNum, $purchaseId)
     {
         //检查该新增的商品在数据库中是否存在，如果存在就直接把 disabled 修改为 false就好
@@ -383,28 +382,163 @@ class ProductModel extends \yii\db\ActiveRecord
         if (empty($moreData)) {
             return '';
         }
-        if(empty($param['type'])){
-            $param['type'] = 0;
-        }
-        // 色号转换。
-        $color_no = (new ColorModel)->select(['color_no'])
-            ->where(['color_id' => $param['color_id']])
-            ->asArray()
-            ->one();
-        //当上传图片为空，给定默认值
-        if (empty($param['image'])) {
-            $param['image'] = "/images/" . $param['modelSn'] . "_" . $color_no . ".jpg";
-        }
-        //检验param是否该填的都填了，前端判断了这里就可以不用判断了  
-
-
-        //款号
-        $style_sn = $param['modelSn'] . sprintf("%04d", $color_no);
-
-        //查询此款款号的最大货号（以便生成新的货号）
+        $param['size'] = $moreData;
+        //添加动作
+        return $this->addProductOperation($param);
     }
 
     /**
+     * use 
+     * this/updateProductOperation
+     *
+     *                                      没有优化
+     * 删除商品   disabled=true商品
+     * @param $lessData
+     * @param $serialNum
+     * @return string
+     */
+    private function _updateProducts($lessData, $serialNum, $purchaseId)
+    {
+        $nowTime = time();
+        foreach ($lessData as $k => $v) {
+            $error_product = self::find()->select(['product_id', 'COUNT(*) AS counts'])
+                ->where(['serial_num' => $serialNum])
+                ->andWhere(['size_id' => $v])
+                ->andWhere(['is_error' => 'true'])
+                ->andWhere(['purchase_id' => $purchaseId])
+                ->asArray()
+                ->one();
+            if($error_product['counts'] < 0){
+                $productObj = self::find()
+                    ->where(['serial_num' => $serialNum])
+                    ->andWhere(['size_id' => $v])
+                    ->andWhere(['is_error' => 'false'])
+                    ->andWhere(['disabled' => 'false'])
+                    ->andWhere(['purchase_id' => $purchaseId])
+                    ->one();
+
+                $isBrought = (new Query)->select()
+                    ->from('meet_order_items')
+                    ->andWhere(['product_id' => $productObj->product_id])
+                    ->andWhere(['disabled' => 'false'])
+                    ->andWhere(['purchase_id' => $purchaseId])
+                    ->asArray()
+                    ->one();
+
+                //添加到购物车的不允许更改
+                if (empty($isBrought['nums'])) {
+                    $productObj->disabled = 'true';
+                    $result = $productObj->save();
+                    if (!$result) {
+                        var_dump('更新失败');exit;
+                    }
+
+                    //添加日志
+                    
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * use
+     * this/updateProductOperation
+     *
+     * 更新数据
+     * @param  [type] $param     [description]
+     * @param  [type] $serialNum [description]
+     * @return [type]            [description]
+     */
+    private function _updateAllSerialNumProduct($param, $serialNum, $purchaseId)
+    {
+        //色号转换
+        $color_no = (new ColorModel)->transColorAll()[$param['color_id']]['color_no'];
+
+        $model_sn = self::find()->where(['serial_num' => $serialNum])
+            ->andWhere(['disabled' => 'false'])
+            ->andWhere(['is_down' => 0])
+            ->andWhere(['purchase_id' => $purchaseId])
+            ->one()->model_sn;
+        $this->disabledErrorProduct($model_sn);
+        //当上传图片为空，给定默认值
+        if (empty($param['image'])) {
+            $param['image'] = Yii::$app->params['imagePath'] . $param['modelSn'] . "_" . $color_no . ".jpg";
+        }
+
+        $nowTime = time();
+        $style_sn = $param['modelSn'] . sprintf("%04d", $color_no);
+        $price_level_id = $this->_transCostPriceToLevel($param['costPrice']);
+        //检查这个款号是否被购买，如果有人购买了，不可修改品牌，名称
+        $count = (new Query)->from('meet_order_items')
+            ->where(['style_sn' => $style_sn])
+            ->count();
+        if ($count) {
+            //根据流水号修改的数据
+            $updateParam = array(
+                'img_url' => addslashes($param['image']),
+                'memo' => addslashes($param['memo']),
+                'is_down' => $param['status'],
+            );
+            //根据款号修改的数据
+            $updateBaseInfo = array(
+                'cost_price' => $param['costPrice'],
+                'price_level_id' => $price_level_id,
+                'cat_b' => $param['catBig'],
+                'cat_m' => $param['catMiddle'],
+                'cat_s' => $param['catSmall'],
+                'season_id' => $param['season'],
+                'level_id' => $param['level'],
+                'wave_id' => $param['wave'],
+                'type_id' => $param['type'],
+                'brand_id' => $param['brand'],
+            );
+        } else {
+            //根据流水号修改的数据
+            $updateParam = array(
+                'name' => addslashes($param['name']),
+                'img_url' => addslashes($param['image']),
+                'memo' => addslashes($param['memo']),
+                'is_down' => $param['status'],
+            );
+            //根据款号修改的数据
+            $updateBaseInfo = array(
+                'cost_price' => $param['costPrice'],
+                'price_level_id' => $price_level_id,
+                'brand_id' => $param['brand'],
+                'purchase_id' => $param['purchase'],
+                'cat_b' => $param['catBig'],
+                'cat_m' => $param['catMiddle'],
+                'cat_s' => $param['catSmall'],
+                'season_id' => $param['season'],
+                'level_id' => $param['level'],
+                'wave_id' => $param['wave'],
+                'type_id' => $param['type'],
+            );
+        }
+        //修改日志文件
+        $log1 = serialize($updateParam);
+        $log2 = serialize($updateBaseInfo);
+
+
+        //添加日志
+
+        
+        $updateCon = "serial_num='{$serialNum}' AND purchase_id = {$purchaseId}";
+        $result1 = self::updateAll($updateParam, $updateCon);
+        $updateCon = "model_sn='{$model_sn}' AND purchase_id = {$purchaseId}";
+        $result2 = self::updateAll($updateBaseInfo, $updateCon);
+        
+        if ($result1 && $result2) {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * use
+     * default/index
+     *
+     * 
      * 前台查询用户订单状态
      * @param  [type] $customerId 用户id
      * @return [type]             [description]
@@ -415,89 +549,6 @@ class ProductModel extends \yii\db\ActiveRecord
             ->from('meet_order')
             ->where(['customer_id' => $customerId])
             ->all();
-    }
-    /**
-     * 前台商品搜索
-     * @param $conArr  搜索条件
-     * @param $serial   搜索型号
-     * @param $params   小条件
-     * @param int $price  价格排序
-     * @param int $page  页码
-     * @param int $pagesize
-     * @return array
-     */
-    public function newitems($conArr, $serial, $params, $price = 1, $page = 1, $pagesize = 8){
-        
-        //根据输入框的长度来判断是否是 model_sn型号 还是 serial_num 流水号查询 出去重的 style_sn 款号
-        if(strlen($serial) >4){
-            //获取查询的去重的款号 的型号  
-            $row = self::find()->select(['style_sn'])
-                ->where(['like', 'model_sn', $serial.'%', false])//右模糊
-                ->andWhere(['disabled' => 'false'])
-                ->andWhere(['is_down' => 0])
-                ->andWhere(['purchase_id' => $params['purchase_id']])
-                ->distinct()
-                ->all();
-
-            if (empty($row)) return [];
-            //根据查询出的款号 和 搜索条件 获取商品的详细信息
-            $items = $this->listStyleSn($row, $params, $conArr);
-        }else{
-            if (!empty($serial)) {
-                //流水号
-                $row = self::find()->select(['style_sn'])
-                ->where(['serial_num', $serial])
-                ->andWhere(['disabled' => 'false'])
-                ->andWhere(['is_down' => 0])
-                ->andWhere(['purchase_id' => $params['purchase_id']])
-                ->distinct()
-                ->all();
-
-                if (empty($row)) return [];
-                $items = $this->listStyleSn($row, $params, $conArr);
-            }else{
-
-                $style_sn = '';
-                $items = $this->listSerial($style_sn, $params, $conArr);
-            }
-        }
-        //人气排序 1:降序  2:升序
-        $hits_sort = [];
-        if ($params['hits'] && !empty($items)) {
-            //根据下单数量来定义人气
-            $order_item_list = (new Query)->select(['style_sn', 'SUM(nums) AS num'])
-            ->from('meet_order_items')
-            ->where(['disabled' => 'false'])
-            ->groupBy('style_sn')
-            ->all();
-            foreach ($order_item_list as $v) {
-                $order_item_list[$v['style_sn']] = $v['num'];
-            }
-
-            foreach ($items as $k => $v) {
-                $num = isset($order_item_list[$v['style_sn']]) ? $order_item_list[$v['style_sn']] : 0;
-                $items[$k]['hit_num'] = $num;
-                $hits_sort[$k] = $num;
-            }
-
-            $sort2 = $params['hits'] == 2 ? SORT_ASC : SORT_DESC;
-            array_multisort($hits_sort, $sort2, $items);
-        }
-
-        //价格升降排序 1:升序  2:降序
-        $price_sort = [];
-        if ($price && !empty($items)) {
-            foreach ($items as $k => $v) {
-                $price_sort[$k] = $v['cost_price'];
-            }
-            $sort1 = $price == 2 ? SORT_ASC : SORT_DESC;
-            array_multisort($price_sort, $sort1, $items);
-        }
-        //这里可以根据查询条件进行缓存的，这样分页太差劲了
-        //分页超出
-        if (($page - 1) * $pagesize > count($items)) return [];
-        //从数组中取出指定分页需要的数据
-        return array_slice($items, ($page - 1) * $pagesize, $pagesize);
     }
 
     /**
@@ -521,7 +572,7 @@ class ProductModel extends \yii\db\ActiveRecord
     }
 
     /**
-     * 使用此方法的方法
+     * use
      * order/default/dialogue 
      *
      * 
@@ -546,7 +597,7 @@ class ProductModel extends \yii\db\ActiveRecord
         return $result;
     }
     /**
-     * 使用此方法的方法
+     * use
      * order/default/dialogue
      *  
      * 获取产品订单详情
@@ -599,7 +650,7 @@ class ProductModel extends \yii\db\ActiveRecord
         return $order;
     }
     /**
-     * 使用方法
+     * use
      * order/order/detail
      * 
      * 获取指定款号产品的尺码信息
@@ -619,7 +670,7 @@ class ProductModel extends \yii\db\ActiveRecord
         return $result;
     }
     /**
-     * 使用方法
+     * use
      * order/order/detail
      * 
      * 获取指定款号产品的尺码信息
@@ -640,7 +691,7 @@ class ProductModel extends \yii\db\ActiveRecord
         
     }
     /**
-     * 使用方法  
+     * use 
      * order/order/detail
      * 
      * 用户下单的产品中指定款号的商品订单信息
@@ -806,5 +857,479 @@ class ProductModel extends \yii\db\ActiveRecord
             ->andWhere(['disabled' => 'false'])
             ->count();
         return $count;
+    }
+    /**
+     * use
+     * order/product/add
+     * order/product/update
+     * order/product/copy
+     *
+     * 添加产品
+     * @param [type] $param [description]
+     */
+    public function addProductOperation($param)
+    {
+        if(empty($param['type'])){
+            $param['type'] = '0';
+        }
+        //色号转换
+        $color_no = (new ColorModel)->transColorAll()[$param['color']]['color_no'];
+        //当上传图片为空，给定默认值
+        if (empty($param['image'])) {
+            $param['image'] = Yii::$app->params['imagePath'] . $param['modelSn'] . "_" . $color_no . ".jpg";
+        }
+
+        //判断是否有空值
+        foreach ($param as $key => $value) {
+            if ($value == '') {
+                return ['code' => 400, 'msg' => "请检查{$k}的{$val}是空，请检查后提交"];
+            }
+        }
+
+        //再次判断款号与色号是否已存在，如果重复则跳转商品修改页面
+        $query_model_color_exist = self::find()->select(['serial_num'])
+            ->where(['model_sn' => $param['modelSn']])
+            ->andWhere(['color_id' => $param['color']])
+            ->asArray()
+            ->one();
+        if (!empty($query_model_color_exist)) {
+            echo "<script>location.href = '/order/product/update&serial_num={$query_model_color_exist['serial_num']}';</script>";
+            die;
+        }
+
+        //款号
+        $style_sn = $param['modelSn'] . sprintf("%04d", $color_no);
+
+        //最大的流水号
+        $query_serial_num = self::find()->select(['MAX( serial_num ) AS largest'])
+            ->asArray()
+            ->one();
+        //生成流水号
+        $serialNum = $query_serial_num['largest'] + 1;
+
+        //查询本款号的货号的最大一位（以便生成货号）
+        $query_model_sn_numbers = self::find()->select(['MAX(SUBSTRING(product_sn,-3,LENGTH(product_sn))) AS nums'])
+            ->where(['model_sn' => $param['modelSn']])
+            ->asArray()
+            ->one();
+
+        if(empty($query_model_sn_numbers['nums'])){
+            $countModelSn = 001;
+        }else{
+            $countModelSn = $query_model_sn_numbers['nums'];
+        }
+
+        //获取价格带id
+        $priceLevel = $this->_transCostPriceToLevel($param['costPrice']);
+
+        $sql_value = [];
+        foreach ($param['size'] as $v) {
+            //货号
+            $countModelSn++;
+            // 三位
+            $backNum = sprintf("%03d", $countModelSn);
+            // 商品货号
+            $product_sn = $style_sn . $backNum;
+
+            $insert_param = array(
+                'purchase_id' => $param['purchase'],
+                'product_sn' => $product_sn,
+                'style_sn' => $style_sn,
+                'model_sn' => $param['modelSn'],
+                'serial_num' => $serialNum,
+                'name' => addslashes($param['name']),
+                'img_url' => $param['image'],
+                'brand_id' => $param['brand'],
+                'cat_b' => $param['catBig'],
+                'cat_m' => $param['catMiddle'],
+                'cat_s' => $param['catSmall'],
+                'color_id' => $param['color'],
+                'size_id' => $v,
+                'season_id' => $param['season'],
+                'level_id' => $param['level'],
+                'wave_id' => $param['wave'],
+                'scheme_id' => $param['scheme'],
+                'cost_price' => $param['costPrice'],
+                'price_level_id' => $priceLevel,
+                'memo' => addslashes($param['memo']),
+                'type_id' => $param['type'],
+                'disabled' => 'false',
+                'is_down' => $param['status'],
+            );
+            $sql_value[] = $insert_param;
+        }
+        $fields = ['purchase_id', 'product_sn', 'style_sn', 'model_sn',
+        'serial_num', 'name', 'img_url', 'brand_id', 'cat_b', 'cat_m', 
+        'cat_s', 'color_id', 'size_id', 'season_id', 'level_id', 'wave_id', 'scheme_id', 'cost_price', 'price_level_id', 'memo', 'type_id', 'disabled', 'is_down'];
+        $result = Yii::$app->db
+            ->createCommand()
+            ->batchInsert(self::tableName(),
+                $fields,
+                $sql_value)
+            ->execute();
+        if ($result) {
+            return true;
+        }
+        return ['code' => 400, 'msg' => "添加失败"];
+
+    }
+
+
+    /**
+     * 判断吊牌价所处的价格带id
+     * @param string $costPrice
+     * @return string
+     */
+    private function _transCostPriceToLevel($costPrice = '')
+    {
+        $costPrice = (int)$costPrice;
+        if ($costPrice <= 99) {
+            return "1";
+
+        } elseif ($costPrice >= 100 && $costPrice <= 199) {
+            return "2";
+
+        } elseif ($costPrice >= 200 && $costPrice <= 299) {
+            return "3";
+
+        } elseif ($costPrice >= 300 && $costPrice <= 399) {
+            return "4";
+
+        } elseif ($costPrice >= 400 && $costPrice <= 499) {
+            return "5";
+
+        } elseif ($costPrice >= 500 && $costPrice <= 999) {
+            return "6";
+
+        } elseif ($costPrice >= 1000 && $costPrice <= 1499) {
+            return "7";
+
+        } elseif ($costPrice >= 1500 && $costPrice <= 2000) {
+            return "8";
+
+        } else {
+            return "9";
+        }
+    }
+
+    /**
+     * use
+     * order/product/explort
+     *
+     * 导出商品
+     * @return [type] [description]
+     */
+    public function getListModel()
+    {
+        $select = ['pu.purchase_name', 'p.purchase_id', 'p.name', 'p.model_sn', 'p.serial_num', 'p.cost_price', 'br.brand_id', 'br.brand_name', 'z.size_no', 'z.size_name', 'co.color_no', 'co.color_name', 'cb.big_id as cat_b_id', 'cb.cat_name as cat_b', 'cm.middle_id as cat_m_id', 'cm.cat_name as cat_m', 'cs.small_id as cat_s_id', 'cs.cat_name as cat_s', 'le.level_name', 'sc.scheme_name', 'se.season_id', 'se.season_name', 'wa.wave_no', 'wa.wave_name', 'p.memo'];
+        $list = (new Query)->select($select)
+            ->from('meet_product p')
+            ->leftJoin('meet_size z', 'p.size_id = z.size_id')
+            ->leftJoin( 'meet_color co', 'p.color_id = co.color_id')
+            ->leftJoin( 'meet_cat_big cb', 'p.cat_b = cb.big_id')
+            ->leftJoin( 'meet_cat_middle cm', 'p.cat_m = cm.middle_id')
+            ->leftJoin( 'meet_cat_small cs', 'p.cat_s = cs.small_id')
+            ->leftJoin( 'meet_level le', 'p.level_id = le.level_id')
+            ->leftJoin( 'meet_purchase pu', 'p.purchase_id = pu.purchase_id')
+            ->leftJoin( 'meet_scheme sc', 'p.scheme_id = sc.scheme_id')
+            ->leftJoin( 'meet_season se', 'p.season_id = se.season_id')
+            ->leftJoin( 'meet_wave wa', 'p.wave_id = wa.wave_id')
+            ->leftJoin( 'meet_brand br', 'p.brand_id = br.brand_id')
+            ->where( ['p.disabled' => 'false'])
+            ->orderBy(['p.purchase_id' => SORT_ASC, 'p.serial_num' => SORT_ASC])
+            ->all();
+        $result = array();
+        foreach ($list as $v) {
+            if (!isset($result[$v['model_sn']]) || !$result[$v['model_sn']]) $result[$v['model_sn']] = $v;
+            $result[$v['model_sn']]['color_str'][] = $v['color_no'] . '[' . $v['color_name'] . ']' . ';' . '000[无定义]';
+            $result[$v['model_sn']]['size_str'][] = $v['size_no'] . '[' . $v['size_name'] . ']';
+        }
+
+
+        return $result;
+    }
+
+
+
+/**
+ * 前台的方法
+ */
+
+    /**
+     * use
+     * default/index
+     * 
+     * 前台商品搜索
+     * @param $conArr  搜索条件
+     * @param $serial   搜索型号
+     * @param $params   小条件
+     * @param int $price  价格排序
+     * @param int $page  页码
+     * @param int $pagesize
+     * @return array
+     */
+    public function newitems($conArr, $serial, $params, $price = 1, $page = 1, $pagesize = 8){
+        
+        //根据输入框的长度来判断是否是 model_sn型号 还是 serial_num 流水号查询 出去重的 style_sn 款号
+
+        if(strlen($serial) >4){
+            //获取查询的去重的款号 的型号  
+            $row = self::find()->select(['style_sn'])
+                ->where(['like', 'model_sn', $serial.'%', false])//右模糊
+                ->andWhere(['disabled' => 'false'])
+                ->andWhere(['is_down' => 0])
+                ->andWhere(['purchase_id' => $params['purchase_id']])
+                ->distinct()
+                ->all();
+
+            if (empty($row)) return [];
+            //根据查询出的款号 和 搜索条件 获取商品的详细信息
+            $items = $this->listStyleSn($row, $params, $conArr);
+        }else{
+            if (!empty($serial)) {
+                //流水号
+                $row = self::find()->select(['style_sn'])
+                ->where(['serial_num', $serial])
+                ->andWhere(['disabled' => 'false'])
+                ->andWhere(['is_down' => 0])
+                ->andWhere(['purchase_id' => $params['purchase_id']])
+                ->distinct()
+                ->all();
+
+                if (empty($row)) return [];
+                $items = $this->listStyleSn($row, $params, $conArr);
+            }else{
+
+                $style_sn = '';
+                $items = $this->listSerial($style_sn, $params, $conArr);
+            }
+        }
+        //人气排序 1:降序  2:升序
+        $hits_sort = [];
+        if ($params['hits'] && !empty($items)) {
+            //根据下单数量来定义人气
+            $order_item_list = (new Query)->select(['style_sn', 'SUM(nums) AS num'])
+            ->from('meet_order_items')
+            ->where(['disabled' => 'false'])
+            ->groupBy('style_sn')
+            ->all();
+            foreach ($order_item_list as $v) {
+                $order_item_list[$v['style_sn']] = $v['num'];
+            }
+
+            foreach ($items as $k => $v) {
+                $num = isset($order_item_list[$v['style_sn']]) ? $order_item_list[$v['style_sn']] : 0;
+                $items[$k]['hit_num'] = $num;
+                $hits_sort[$k] = $num;
+            }
+
+            $sort2 = $params['hits'] == 2 ? SORT_ASC : SORT_DESC;
+            array_multisort($hits_sort, $sort2, $items);
+        }
+
+        //价格升降排序 1:升序  2:降序
+        $price_sort = [];
+        if ($price && !empty($items)) {
+            foreach ($items as $k => $v) {
+                $price_sort[$k] = $v['cost_price'];
+            }
+            $sort1 = $price == 2 ? SORT_ASC : SORT_DESC;
+            array_multisort($price_sort, $sort1, $items);
+        }
+        //这里可以根据查询条件进行缓存的，这样分页太差劲了
+        //分页超出
+        if (($page - 1) * $pagesize > count($items)) return [];
+        //从数组中取出指定分页需要的数据
+        return array_slice($items, ($page - 1) * $pagesize, $pagesize);
+    }
+
+    /**
+     * use
+     * this->newitems
+     * 
+     * 搜索框为空是搜索的产品
+     * @return [type] [description]
+     */
+    public function listSerial($style_sn, $params, $conArr)
+    {
+        //尺码表获取所有的尺码  
+        $size_list = $this->getSizes();
+        //获取该订购会下所有上线的商品
+        $list = $this->getProductUp();
+
+        //获取客户订单详细信息
+        $order_row = $this->getOrderInfo($params['purchase_id'], $params['customer_id']);
+
+        $items_model_sn = [];
+        //记录客户下单的款号style_sn
+        foreach ($order_row as $v) {
+            $items_model_sn[] = $v['style_sn'];
+        }
+        $items = [];
+        foreach ($list as $v) {
+            //款号筛选
+            if ($style_sn && ($v['style_sn'] != $style_sn)) continue;
+
+            //搜索已订条件的产品
+            if ($params['or'] == 1 && !in_array($v['style_sn'], $items_model_sn)) continue;
+            //搜索未订购条件的产品
+            if ($params['or'] == 2 && in_array($v['style_sn'], $items_model_sn)) continue;
+
+            $item = $v;
+            //筛选条件
+            $item['search_id'] = [
+                's_id_' . $v['cat_b'],
+                'c_id_' . $v['cat_s'],
+                'sd_' . $v['season_id'],
+                'wv_' . $v['wave_id'],
+                'lv_' . $v['level_id'],
+                'plv_' . $v['price_level_id'],
+            ];
+
+            //根据筛选条件进行筛选  
+            //根据该条记录拼接数来的筛选条件和用户传过来的筛选条件进行交集，看是否等于用户的筛选条件，如果等于则符合用户筛选
+            if (array_intersect($conArr, $item['search_id']) != $conArr) continue;
+
+            //该商品是否已订 
+            $item['is_order'] = in_array($v['style_sn'], $items_model_sn) ? 1 : 2;
+
+            //尺码
+            //款号style_sn 相同则尺寸信息相同  
+            //获取一个style_sn 下产品的所有尺寸,以及商品信息
+            if (isset($items[$v['style_sn']])) {
+                $item['size'] = $items[$v['style_sn']]['size'];
+                $item['size_item'] = $items[$v['style_sn']]['size_item'];
+            }
+
+            if (!isset($item['size']) || !in_array($size_list[$v['size_id']], $item['size'])) {
+                $item['size'][$v['size_id']] = $size_list[$v['size_id']];
+            }
+            $row['product_id'] = $v['product_id'];
+            $row['product_sn'] = $v['product_sn'];
+            $row['size_name'] = $size_list[$v['size_id']];//尺码
+            $item['size_item'][] = $row;
+            $items[$v['style_sn']] = $item;//款号的信息
+        }
+        return $items;
+    }
+    /**
+     * use
+     * this->listSerial
+     *
+     * 
+     * 获取尺码数据
+     * @return [type] [description]
+     */
+    public function getSizes()
+    {
+        $items = Yii::$app->cache->get('size-id-list');
+        if (empty($items)) {
+            $result = (new Query)->select(['size_name', 'size_id'])
+                ->from('meet_size')
+                ->all();
+            $items = [];
+            foreach ($result as $row) {
+                $items[$row['size_id']] = $row['size_name'];
+            }
+            Yii::$app->cache->set('size-id-list', $items);
+        }
+        return $items;
+    }
+    /**
+     * use
+     * this->listSerial
+     *
+     * 获取指定订购会下所有上架的商品
+     * @return [type] [description]
+     */
+    public function getProductUp()
+    {
+        $purchaseId = Yii::$app->session['purchase_id'];
+        $items = Yii::$app->cache->get('product-list-'.$purchaseId);
+        if (empty($items)) {
+            $query = self::find();
+            if ($purchaseId == Yii::$app->params['purchaseAB']) {
+                $query->where(['or', 'purchase_id', [1,2]]);
+            }else{
+                $query->where(['purchase_id' => $purchaseId]);
+            }
+        
+            $items = $query->andWhere(['disabled' => 'false'])
+                ->andWhere(['is_down' => 0])
+                ->orderBy(['serial_num' => SORT_ASC])
+                ->asArray()
+                ->all();
+            Yii::$app->cache->set('product-list-'.$purchaseId, $items, 3600*24);
+        }
+        return $items;
+    }
+    /**
+     * use
+     * this->listSerial
+     *
+     * 
+     * 获取客户订单详情
+     * @param  [type] $purchaseId [description]
+     * @param  [type] $customerId [description]
+     * @return [type]             [description]
+     */
+    public function getOrderInfo($purchaseId, $customerId)
+    {
+        //获取订单详情
+        $items = (new Query)->select(['oi.nums', 'oi.product_id', 'oi.style_sn', 'oi.model_sn'])
+            ->from('meet_order as order')
+            ->leftJoin('meet_order_items as oi', 'order.order_id = oi.order_id')
+            ->where(['order.disabled' => 'false'])
+            ->andWhere(['oi.disabled' => 'false'])
+            ->andWhere(['order.purchase_id' => $purchaseId])
+            ->andWhere(['order.customer_id' => $customerId])
+            ->all();
+
+        if (empty($items)) {
+            return [];
+        }
+        $query = self::find()->select(['product_id'])
+            ->where(['is_down' => 0])
+            ->andWhere(['disabled' => 'false']);
+        if ($purchaseId == Yii::$app->params['purchaseAB']) {
+            $query->andWhere(['or', 'purchase_id', [1,2]]);
+        }else{
+            $query->andWhere(['purchase_id' => $purchaseId]);
+        }
+        //上架商品id
+        $upProductIds = $query
+            ->indexBy('product_id')
+            ->asArray()->all();
+        $model = [];
+        //判断订单里的产品是否下架
+        foreach ($items as $item) {
+            $model[$item['product_id']] = $item;
+            $model[$item['product_id']]['is_down'] = isset($upProductIds[$item['product_id']])?0:1;
+        }
+        return $model;
+    }
+
+     /**
+     * id转名称
+     *
+     * @param $table
+     * @param $select
+     * @param $where_id
+     * @return array
+     */
+    public function tableValue($table, $select, $where_id)
+    {
+        $items = Yii::$app->cache->get($table . '-id-list');
+        if (!$items) {
+            $list = (new Query)->select([$where_id, $select])
+                ->from('meet_' . $table)
+                ->all();
+            $items = array();
+            foreach ($list as $v) {
+                $items[$v[$where_id]] = $v[$select];
+            }
+            Yii::$app->cache->set($table . '-id-list', $items, 3600 * 24);
+        }
+        return $items;
     }
 }

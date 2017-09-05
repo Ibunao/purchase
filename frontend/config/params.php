@@ -1,10 +1,8 @@
 <?php
 return [
-    'adminEmail' => 'admin@example.com',
     //图片地址
     'img_url' => 'http://128.128.1.79', //正式环境请 取消注释
     //'img_url' => 'http://fair.st.octmami.com',//给app审核 正式上线请注释
-    // 'img_url' => 'http://purchase.zmisgod.com', //本地测试地址，其他人请自行更换
     /*
      * 如果订货会开始, 要使用接口了,请设置 is_online = yes
      * 如果未上线,设置 is_online = no 此时接口地址为 http://fair.st.octmami.com/api.php?r=api%@
@@ -157,4 +155,6 @@ return [
     ),
     //同时属于AB订货会的订货会id
     'purchaseAB' => 3,
+    //创建文件图片文件夹，为了更好的分类，每次订货会要更改
+    'imagePath' => '/images/2018-12-12/'
 ];

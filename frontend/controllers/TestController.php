@@ -6,7 +6,7 @@ use yii\web\Controller;
 use frontend\models\AdminUsers;
 use frontend\models\ProductModel;
 /**
- * Admin controller
+ * 测试
  */
 class TestController extends Controller
 {
@@ -20,8 +20,14 @@ class TestController extends Controller
     public function actionTest()
     {
         $models = new ProductModel;
-        $result = $models->getOrderInfo('1', '10000002');
-        var_dump($result);
+        // $result = $models->getOrderInfo('1', '10000002');
+        // var_dump($result);
+
+        $result = $models->find()
+            ->where(['model_sn' => 12345679])
+            ->orWhere(['serial_num' => 1000000000])
+            ->count();
+            var_dump($result);
     }
     public function actionGo()
     {
