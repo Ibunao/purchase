@@ -5,15 +5,15 @@
     </a>
     <a class="hd_footer_ordernum fl" href="#">
         <label class="icon_footer_ordernum"></label>
-        订货数量：<span class="word_dark_green pd_r5" id="footer_order_number"><?php echo $mon=$this->context->totalNum;?></span>件
+        订货数量：<span class="word_dark_green pd_r5" id="footer_order_number"><?= $mon=$this->context->totalNum;?></span>件
     </a>
     <a class="hd_footer_orderprice fl" href="#">
         <label class="icon_footer_orderprice"></label>
-        订货金额：<span class="word_dark_green pd_r5" id="footer_order_money"><?php echo $mon=$this->context->amount;?></span>元
+        订货金额：<span class="word_dark_green pd_r5" id="footer_order_money"><?= $mon=$this->context->amount;?></span>元
     </a>
     <a class="hd_footer_orderindex fl" href="#">
         <label class="icon_footer_orderprice"></label>
-        订货指标：<span class="word_dark_green pd_r5" id="footer_order_target"><?php echo $tar=Yii::$app->session['target'];?></span>元
+        订货指标：<span class="word_dark_green pd_r5" id="footer_order_target"><?= $tar=Yii::$app->session['target'];?></span>元
     </a>
     <a class="hd_footer_ordernd fl" href="#">
         <label class="icon_footer_ordernum"></label>

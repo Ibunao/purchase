@@ -549,10 +549,15 @@ class ProductModel extends \yii\db\ActiveRecord
             ->from('meet_order')
             ->where(['customer_id' => $customerId])
             ->all();
+        return $result;
     }
 
     /**
-     * 缓存指定订购会所有产品 包括下架的 并根据流水号合并
+     *  use
+     *  this/getThisProductIsDown
+     *  this->listModelCache
+     *  
+     * 缓存指定订购会所有产品 包括下架的 并根据流水号排序
      * @return [type] [description]
      */
     public function productListCache()
@@ -560,9 +565,14 @@ class ProductModel extends \yii\db\ActiveRecord
         $purchaseId = Yii::$app->session->get('purchase_id');
         $list = Yii::$app->cache->get('all-product-list-without-down-' . $purchaseId);
         if (empty($list)) {
-            $list = self::find()
-                ->where(['purchase_id' => $purchaseId])
-                ->andWhere(['disabled' => 'false'])
+            $query = self::find();
+            if ($purchaseId == Yii::$app->params['purchaseAB']) {
+                $query->where(['in', 'purchase_id' => $purchaseId]);
+            }else{
+                $query->where(['purchase_id' => $purchaseId]);
+            }
+                
+            $list = $query->andWhere(['disabled' => 'false'])
                 ->orderBy(['serial_num' => SORT_ASC])
                 ->asArray()
                 ->all();
@@ -1099,8 +1109,8 @@ class ProductModel extends \yii\db\ActiveRecord
                 if (empty($row)) return [];
                 $items = $this->listStyleSn($row, $params, $conArr);
             }else{
-
                 $style_sn = '';
+// var_dump($style_sn, $params, $conArr);exit;
                 $items = $this->listSerial($style_sn, $params, $conArr);
             }
         }
@@ -1174,7 +1184,6 @@ class ProductModel extends \yii\db\ActiveRecord
             if ($params['or'] == 1 && !in_array($v['style_sn'], $items_model_sn)) continue;
             //搜索未订购条件的产品
             if ($params['or'] == 2 && in_array($v['style_sn'], $items_model_sn)) continue;
-
             $item = $v;
             //筛选条件
             $item['search_id'] = [
@@ -1331,5 +1340,155 @@ class ProductModel extends \yii\db\ActiveRecord
             Yii::$app->cache->set($table . '-id-list', $items, 3600 * 24);
         }
         return $items;
+    }
+
+    /**
+     * use
+     * default/detail
+     *
+     * 用户订单详情以及商品是否下架
+     * @param  [type]  $purchase_id 订货会品牌
+     * @param  [type]  $customer    客户id
+     * @param  boolean $model_sn    型号
+     * @return [type]               用户订单详情以及商品是否下架
+     */
+    public function getThisOrderedInfo($purchase_id, $customer, $model_sn = ''){
+        
+        $orderId = $query = (new Query)->select(['order_id'])
+            ->from('meet_order')
+            ->where(['customer_id' => $customer])
+            ->andWhere(['disabled' => 'false']);
+        if ($purchase_id == 3) {
+            $query->andWhere(['in', 'purchase_id', [1,2]]);
+        }else{
+            $query->andWhere(['purchase_id' => $purchase_id]);
+        }
+        $orderId = $query->one();
+        
+        if(empty($order_id)) return [];
+        //获取订单的详细信息
+        $item_list = (new Query)->select(['nums', 'product_id', 'style_sn', 'model_sn'])
+            ->from('meet_order_items')
+            ->where(['order_id' => $orderId['order_id']])
+            ->andWhere(['disabled' => 'false'])
+            ->andFilterWhere(['model_sn' => $model_sn])
+            ->all();
+
+        if(empty($item_list)) return [];
+
+        //是否下架
+        $res = $this->getThisProductIsDown();
+        foreach ($item_list as $v) {
+            $model[$v['product_id']] = $v;
+            $model[$v['product_id']]['is_down'] = isset($res[$v['product_id']]) ? $res[$v['product_id']] : 0;
+        }
+        return $model;
+    }
+    /**
+     * use 
+     * this->getThisOrderedInfo
+     *
+     * 产品id和是否下架
+     * @return [type] [description]
+     */
+    public function getThisProductIsDown()
+    {
+        $res = $this->productListCache();
+        $result = [];
+        foreach($res as $val){
+            $result[$val['product_id']] = $val['is_down'];
+        }
+        return $result;
+    }
+    /**
+     * use
+     * default/detail
+     * 
+     * 按款号缓存
+     * 
+     * @param $model_sn
+     * @return mixed
+     */
+    public function listModelCache($model_sn)
+    {
+        $size_list = $this->tableValue('size', 'size_name', 'size_id');
+        $color_list = $this->tableValue('color', 'color_name', 'color_id');
+        $purchaseId = Yii::$app->session['purchase_id'];
+        $items = Yii::$app->cache->get('model-product-list-' . $purchaseId);
+        
+        if (!$items) {
+            $list = $this->productListCache();;
+            foreach ($list as $v) {
+                $item = $v;
+                $product_item['product_id'] = $v['product_id'];
+                $product_item['product_sn'] = $v['product_sn'];
+                $product_item['cost_price'] = $v['cost_price'];
+                $product_item['size_id'] = $v['size_id'];
+                $product_item['color_id'] = $v['color_id'];
+                $product_item['is_down'] = $v['is_down'];
+                $size_item['size_id'] = $v['size_id'];
+                $size_item['size_name'] = $size_list[$v['size_id']];
+                $color_item['color_id'] = $v['color_id'];
+                $color_item['color_name'] = $color_list[$v['color_id']];
+                if (isset($items[$v['model_sn']])) {
+                    $items[$v['model_sn']]['product_list'][$v['size_id'] . '_' . $v['color_id']] = $product_item;
+                    if (!in_array($size_item, $items[$v['model_sn']]['size_list']))
+                        $items[$v['model_sn']]['size_list'][$v['size_id']] = $size_item;
+                    if (!in_array($color_item, $items[$v['model_sn']]['color_list']))
+                        $items[$v['model_sn']]['color_list'][] = $color_item;
+                    continue;
+                }
+                $item['product_list'][$v['size_id'] . '_' . $v['color_id']] = $product_item;
+                $item['size_list'][$v['size_id']] = $size_item;
+                $item['color_list'][] = $color_item;
+                $items[$v['model_sn']] = $item;
+            }
+            Yii::$app->cache->set('model-product-list-' . $purchaseId, $items, 3600 * 24);
+        }
+        return $items[$model_sn];
+    }
+
+    /**
+     * use
+     * ordermodel/itemListAjax
+     * 前台使用的
+     * 缓存商品id，不包含下架的
+     * @return [type] [description]
+     */
+    public function listcacheId()
+    {
+        $list = Yii::$app->cache->get('all-product-list-id-' . Yii::$app->session['purchase_id']);
+        if (!$list) {
+            $purchase_id = Yii::$app->session['purchase_id'];
+            $result = self::find()->where(['purchase_id' => $purchase_id])
+                ->andWhere(['disabled' => 'false'])
+                ->andWhere(['is_down' => '0'])
+                ->orderBy(['serial_num' => SORT_ASC])
+                ->asArray()
+                ->all();
+            foreach ($result as $v) {
+                $list[$v['product_id']] = $v;
+            }
+            Yii::$app->cache->set('all-product-list-id-' . Yii::$app->session['purchase_id'], $list, 3600 * 24);
+        }
+        return $list;
+    }
+    /**
+     * 判断此商品是否为下架
+     * @param $product_id
+     * @return string
+     */
+    public function checkThisProductIsDown($product_id){
+        $result = $this->ModelQueryRow("SELECT is_down FROM {{product}} WHERE product_id='{$product_id}' AND disabled='false'");
+        $result = self::find()->select(['is_down'])
+            ->where(['product_id' => $product_id])
+            ->andWhere(['disabled' => 'false'])
+            ->asArray()
+            ->one();
+        if($result['is_down'] == '1'){
+            return "";
+        }else{
+            return $product_id;
+        }
     }
 }

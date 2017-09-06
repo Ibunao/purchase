@@ -1,4 +1,4 @@
-<?php echo $this->render('/common/_nav', ['model'=>$model,'c_id'=>$c_id,'b_id'=>$b_id]);?>
+<?= $this->render('/common/_nav', ['model'=>$model,'c_id'=>$c_id,'b_id'=>$b_id]);?>
 <!--右侧主区域-->
 <div class="hd_rt_main">
     <?php if(isset($_GET['sd'])||isset($_GET['wv'])||isset($_GET['lv'])||isset($_GET['plv'])||isset($_GET['or'])){?>
@@ -41,21 +41,32 @@
                     <?php if ($v['is_order'] == 1):?>
                     <label class="icon_brought fr"></label>
                     <?php endif;?>
-                    <span class="num_pd_list fl"><?php echo $v['serial_num'];?>.</span>
+                    <span class="num_pd_list fl"><?= $v['serial_num'];?>.</span>
                 </div>
-                <a href="#inline_<?php echo $v['serial_num'];?>" class="fancybox_img">
+                <a href="#inline_<?= $v['serial_num'];?>" class="fancybox_img">
                     <img class="pd_list_pic" src="<?php if($v['is_down']=='0'){  echo Yii::$app->params['img_url'].$v['img_url']; }else{
                         echo "/images/default.jpg";
                      }?>">
                 </a>
-                <div id="inline_<?php echo $v['serial_num'];?>" style="width:300px;display: none;">
-                   <?php if($v['is_down']=='0'){ ?> <img src="<?php echo Yii::$app->params['img_url'].$v['img_url']; ?>"><?php }else{ ?>
+                <div id="inline_<?= $v['serial_num'];?>" style="width:300px;display: none;">
+                   <?php if($v['is_down']=='0'){ ?> <img src="<?= Yii::$app->params['img_url'].$v['img_url']; ?>"><?php }else{ ?>
                        <img src="/images/default.jpg">
                     <?php }?>
                 </div>
             </li>
-            <li class="pd_list_dt pd_type_<?php echo sprintf("%02d", $v['type_id']); ?>">
-              <?php $js=isset($res[0]['status'])?$res[0]['status']:0;  if($js=='active'){ ?>  <a href="<?php if($v['is_down']==0){ ?>#inline1<?php }else{?>##inlineSS<?php } ?>" data="<?php echo $v['model_sn'];?>" class=" <?php if($v['is_down']==0){ ?> fancybox  bt_send_to_cart <?php }else{ ?> bt_send_false <?php } ?>"><label class="icon_send_to_cart"></label>预订</a><?php }?>
+            <li class="pd_list_dt pd_type_<?= sprintf("%02d", $v['type_id']); ?>">
+<?php $js=isset($res[0]['status'])?$res[0]['status']:0;  
+//如果提交了按钮不显示
+    if($js=='active'){ 
+?>  
+    <a href="<?php 
+        //如果商品下架了
+        if($v['is_down']==0){ 
+    ?>#inline1
+    <?php }else{?>
+    ##inlineSS
+    <?php } ?>" data="<?= $v['model_sn'];?>" class=" <?php if($v['is_down']==0){ ?> fancybox  bt_send_to_cart <?php }else{ ?> bt_send_false <?php } ?>"><label class="icon_send_to_cart"></label>预订</a>
+<?php }?>
                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
                     <tr>
 
@@ -63,7 +74,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">款号:</td>
-                                    <td><?php echo $v['model_sn'];?></td>
+                                    <td><?= $v['model_sn'];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -71,7 +82,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">编号:</td>
-                                    <td><?php echo $v['style_sn'];?></td>
+                                    <td><?= $v['style_sn'];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -79,7 +90,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">价格:</td>
-                                    <td><?php echo $v['cost_price'];?>元</td>
+                                    <td><?= $v['cost_price'];?>元</td>
                                 </tr>
                             </table>
                         </td>
@@ -89,7 +100,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">颜色:</td>
-                                    <td><?php echo $this->context->color[$v['color_id']];?></td>
+                                    <td><?= $this->context->color[$v['color_id']];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -105,7 +116,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">波段:</td>
-                                    <td><?php echo $this->context->wave[$v['wave_id']];?></td>
+                                    <td><?= $this->context->wave[$v['wave_id']];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -115,7 +126,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_m">商品名称：</td>
-                                    <td class="pd_list_content_m"><?php echo $v['name'];?></td>
+                                    <td class="pd_list_content_m"><?= $v['name'];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -123,7 +134,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tbody><tr>
                                     <td class="pd_list_title_s">款式:</td>
-                                    <td><?php echo $this->context->level[$v['level_id']];?></td>
+                                    <td><?= $this->context->level[$v['level_id']];?></td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -134,7 +145,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_m">商品描述：</td>
-                                    <td class="pd_list_content_m"><?php echo $v['memo'];?></td>
+                                    <td class="pd_list_content_m"><?= $v['memo'];?></td>
                                 </tr>
                             </table>
                         </td>
@@ -142,7 +153,7 @@
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td class="pd_list_title_s">类型:</td>
-                                    <td><?php echo $this->context->type[$v['type_id']]; ?></td>
+                                    <td><?= $this->context->type[$v['type_id']]; ?></td>
                                 </tr>
                             </table>
                         </td>
@@ -154,11 +165,11 @@
         <div class="load-div">
             <!--滚动加载-->
             <p class="y_loading_easy" id="J_loadmore"><i class="dot"></i>努力加载中...</p>
-            <input type="hidden" value="<?php echo $this->context->urlParams(array('next'=>1, 'serial_num' => $serial_num));?>" id="url">
+            <input type="hidden" value="<?= $this->context->urlParams(array('next'=>1, 'serial_num' => $serial_num));?>" id="url">
             <!--滚动加载-->
         </div>
     </div>
 <!--商品list-->
     <?php endif;?>
 </div>
-<?php echo $this->render('/common/_footer',[]);?>
+<?= $this->render('/common/_footer',[]);?>

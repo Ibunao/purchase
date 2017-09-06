@@ -13,11 +13,13 @@
     <script type="text/javascript" src="/js/jquery-1.7.2.js"></script>
     <script type="text/javascript" src="/js/jquery.ztree.core-3.5.js"></script>
     <script type="text/javascript" src="/js/jquery.fancybox.js?v=2.1.4"></script>
+    
     <link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=2.1.4" media="screen" />
     <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/images/fav_ico_72.png">
     <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/images/fav_ico_144.png">
 </head>
 <body>
 <?= $content;?>
+<script type="text/javascript" src="/js/public.js"></script>
 </body>
 </html>

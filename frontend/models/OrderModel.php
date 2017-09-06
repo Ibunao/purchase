@@ -267,6 +267,7 @@ class OrderModel extends \yii\db\ActiveRecord
     /**
      * use
      * FBaseController
+     * this->addAjax
      * 
      * 获取用户的订单详情 
      * 添加商品订单的时候注意清缓存
@@ -301,6 +302,9 @@ class OrderModel extends \yii\db\ActiveRecord
         return $model;
     }
     /**
+     * use
+     * this/orderItems
+     * 
      * 要缓存的订单信息
      * @param  [type] $purchaseId 订购会id
      * @param  [type] $customerId  用户id
@@ -986,5 +990,128 @@ foreach ($queryAll as $key => $order) {
             $result[] = $arr;
         }
         return $result;
+    }
+
+    /**
+     * use
+     * forder/actionGetAllPrice
+     *
+     * 前台添加商品
+     */
+    public function addAjax($product, $purchase_id, $customer_id, $customer_name)
+    {
+        $create_time = time();
+        //如果该会员已经生成订单，在原来的订单上添加订购的商品
+        //会员订单是否生成
+        $order_list = $this->orderItems($purchase_id, $customer_id);//已经订购的产品
+        //订单order_id获取
+        if ($order_list['order_row']) {
+            $order_id = $order_list['order_row']['order_id'];
+        }else {
+            $order_id = $this->buildOrderNo();
+        }
+var_dump($product, $order_id, $order_list['item_list']);exit;
+        //订单商品列表
+        $item_list = $this->itemListAjax($product, $order_id, $order_list['item_list']);
+
+        //订单主表
+        if (isset($order_list['order_row']) && $order_list['order_row']) {
+            $order_sql = "UPDATE meet_order SET edit_time = {$create_time} WHERE order_id = {$order_list['order_row']['order_id']}";
+        } else {
+            $order_sql = "INSERT INTO meet_order (order_id,purchase_id,status,customer_id,customer_name,cost_item,create_time) VALUE
+            ({$order_id},{$purchase_id},'active',{$customer_id},'{$customer_name}','{$item_list['total']}',{$create_time})";
+        }
+        //事务处理
+        $transaction = Yii::app()->db->beginTransaction();
+        try {
+            $this->ModelExecute($order_sql);
+            $this->ModelExecute($item_list['sql']);
+            $transaction->commit();
+            //更新订单缓存
+            $this->orderCache($purchase_id, $customer_id);
+            return true;
+        } catch (Exception $e) {
+            $transaction->rollback();
+            return false;
+        }
+    }
+    /**
+     * use
+     * this->addAjax
+     *
+     * 
+     * @param  [type] $product   预定提交的产品
+     * @param  [type] $order_id  订单id
+     * @param  [type] $item_list 订单已经存在的产品
+     * @return [type]            [description]
+     */
+    public function itemListAjax($product, $order_id, $item_list)
+    {
+        $productModel = new ProductModel();
+        //商品的id
+        $product_list = $productModel->listcacheId();
+        $sql = '';
+        $order_product_list = isset($item_list) && $item_list ? $item_list : array();//已定单 数量等
+        var_dump($product);exit;
+        foreach ($product as $k => $v) {
+            $num = isset($v[1]) ? $v[1] : '';
+            if ($num == 0) {
+                $num = '';
+            }
+            $res = $productModel->checkThisProductIsDown($v[0]);
+            //产品下架
+            if(empty($res)){
+                //下架的产品在再次添加的时候如果检测到下架，将已经添加到购物车中的产品改为删除状态
+                $where = "order_id = " . $order_id . "AND product_id = '" . $v[0] . "' AND disabled='false'";
+                $delete_data_arr[] = OrderItemsModel::updateAll(['disabled' => 'true'], $where);
+                continue;
+            }
+            //如果用户将添加到商品订单的商品调到0了
+            if ($num == '') {
+                if (isset($product_list[$v[0]]) && $product_list[$v[0]]){
+                    $where = "order_id = " . $order_id . "AND product_id = '" . $v[0] . "' AND disabled='false'";
+                    $delete_data_arr[] = OrderItemsModel::updateAll(['disabled' => 'true'], $where);
+                }
+                continue;
+            }
+// var_dump($product_list);exit;
+            $product_sn = $product_list[$v[0]]['product_sn'];
+            $style_sn = $product_list[$v[0]]['style_sn'];
+            $model_sn = $product_list[$v[0]]['model_sn'];
+            $name = $product_list[$v[0]]['name'];
+            $price = $product_list[$v[0]]['cost_price'];
+            $amount = sprintf('%.2f', $price * $num);
+            //订单已经存在，更新 同时更新价格
+            if (isset($order_product_list[$v[0]]) && $order_product_list[$v[0]]) {
+                $where = 'order_id = ' . $order_id . ' AND product_id = ' . $v[0]. " AND disabled='false'";
+                $update = [
+                    'price' => $price,
+                    'amount' => $amount,
+                    'nums' => $nums,
+                ];
+                $update_data_arr[] = OrderItemsModel::updateAll($update, $where);
+            } else {
+                //插入
+                $insert_data_arr[] = [$order_id, $v[0], $product_sn, $style_sn, $model_sn, $name, $price, $amount, $num];
+            }
+        }
+        //新增商品
+        if (isset($insert_data_arr) && $insert_data_arr)
+            $keys = ['order_id', 'product_id', 'product_sn', 'style_sn', 'model_sn', 'name', 'price', 'amount', 'nums'];
+$result = Yii::$app->db
+->createCommand()
+->batchInsert(OrderItemsModel::tableName(),
+    $keys,
+    $insert_data_arr)
+->execute();
+
+        //更新商品
+        if (isset($update_data_arr) && $update_data_arr)
+            $sql .= implode('', $update_data_arr);
+        //删除商品
+        if (isset($delete_data_arr) && $delete_data_arr) {
+            $sql .= implode('', $delete_data_arr);
+        }
+        return array('sql' => $sql, 'total' => 0);
     }
 }

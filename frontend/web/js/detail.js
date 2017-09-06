@@ -57,7 +57,7 @@ $(document).ready(function(){
         });
         $.ajax({
             type:"post",
-            url:"/order/getAllPrice",
+            url:"/forder/get-all-price",
             dataType:"json",
             data:{dt:dt},
             async: true,

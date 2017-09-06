@@ -69,10 +69,10 @@ class DefaultController extends FBaseController
     	$wv = $request->get('wv');		//波段
     	$lv = $request->get('lv');		//等级
     	$plv = $request->get('plv');	//价格带
-    	$or = $request->get('or');		//已订/未订
-    	$price = $request->get('price');	//价格升降排序
-    	$hits = $request->get('hits');		//人气升降排序
-    	$serialNum = $request->get('serial_num');	//输入搜索
+    	$or = $request->get('or', '');		//已订/未订
+    	$price = $request->get('price', '');	//价格升降排序
+    	$hits = $request->get('hits', 1);		//人气升降排序
+    	$serialNum = $request->get('serial_num', '');	//输入搜索
 
     	//搜索条件
     	$conArr = $model = [];
@@ -85,10 +85,10 @@ class DefaultController extends FBaseController
     	    if (isset($cat_arr[1])) $c_id = $cat_arr[1];
 
     	    if ($c_id) {
-    	        $conArr[] = 'b_id_' . $b_id;
+    	        $conArr[] = 's_id_' . $b_id;
     	        $conArr[] = 'c_id_' . $c_id;
     	    } elseif ($b_id) {
-    	        $conArr[] = 'b_id_' . $b_id;
+    	        $conArr[] = 's_id_' . $b_id;
     	    }
 
     	}
@@ -124,8 +124,9 @@ class DefaultController extends FBaseController
     	//一个用户的订单状态
     	$res=$productModel->checkStatus($params['customer_id']);
 
-    	//获取搜索的商品
-    	$model['list'] = $productModel->newitems($conArr, $serialNum, $params, $price, $page);
+// var_dump($conArr, $serialNum, $params, $price, $page);exit;
+        //获取搜索的商品
+        $model['list'] = $productModel->newitems($conArr, $serialNum, $params, $price, $page);
     	$model['c_id'] = $c_id;
     	$model['price'] = $price;
     	$model['price_f'] = $price == 1 ? 2 : 1;
@@ -145,5 +146,24 @@ class DefaultController extends FBaseController
 	    	    	'res'=>$res
     	    	]);
     	}
+    }
+    /**
+     * 商品详情
+     */
+    public function actionDetail()
+    {
+        $model_sn = Yii::$app->request->post('model_sn');
+        $productModel = new ProductModel;
+        $list = $productModel->listModelCache($model_sn);
+        $purchaseId = $this->purchaseId;
+        $customerId = $this->customerId;
+        $order = $productModel->getThisOrderedInfo($purchaseId, $customerId, $model_sn);
+        $total = 0;
+        if (isset($order) && $order) {
+            foreach ($order as $v) {
+                if ($v['model_sn'] == $model_sn) $total += $v['nums'];
+            }
+        }
+        return $this->renderPartial('detail', array('list' => $list, 'total' => $total, 'order_items'=>$order));
     }
 }

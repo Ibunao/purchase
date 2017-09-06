@@ -11,7 +11,7 @@ use frontend\models\OrderModel;
 class FBaseController extends Controller
 {
 
-    public $layout = 'frondent';
+    public $layout = 'column2';
     //关闭csrf
     public $enableCsrfValidation = false;
 
@@ -21,6 +21,7 @@ class FBaseController extends Controller
     public $orderState;//订单状态
 
     public $customerId;//用户id
+    public $username;//用户名
     public $purchaseId;//订购会id
 	public function init()
 	{
@@ -32,6 +33,7 @@ class FBaseController extends Controller
         }
         $this->customerId = Yii::$app->session->get('customer_id');
         $this->purchaseId = Yii::$app->session->get('purchase_id');
+        $this->username = Yii::$app->session->get('name');
         $this->orderTotal();
 	}
     /**
@@ -83,5 +85,29 @@ class FBaseController extends Controller
 
         $url='/'.$this->route.'/';
         return $url.'?'.implode('&',$arr);
+    }
+    /**
+     * 字符串截取
+     * @access public
+     * @param $String
+     * @param $CutNum
+     * @param string $Style
+     * @param string $encoding
+     * @return string
+     */
+
+    function globalSubstr($String,$CutNum,$Style='',$encoding='utf-8'){
+        if(!function_exists('mb_substr')) {
+            die('must support php_mb_substr');
+        }
+        if(!$String) return false;
+        $String = strip_tags($String);
+        $strCounter = mb_strlen($String,$encoding);
+        if($CutNum > $strCounter) $CutNum = $strCounter;
+        $tempStr  = mb_substr($String,0,$CutNum,$encoding);
+        if($strCounter > $CutNum) {
+            $tempStr .= $Style;
+        }
+        return $tempStr;
     }
 }

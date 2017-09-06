@@ -15,7 +15,7 @@
 </div>
 
 <div id="inline4" class="popup_alert" style="display: none;">
-    <?php if ($this->amount >= Yii::app()->session['target']):?>
+    <?php if ($this->context->amount >= Yii::$app->session['target']):?>
     <div class="popup_alert_words">
         确定提交？
     </div>
@@ -23,7 +23,7 @@
         <input type="button" id="bt_order" value="确定">
         <input type="hidden" id="delete_item" value="">
     </div>
-    <?php elseif ($this->amount && $this->amount < Yii::app()->session['target']):?>
+    <?php elseif ($this->context->amount && $this->context->amount < Yii::$app->session['target']):?>
     <div class="popup_alert_words">
         未达到订货指标,确定提交？
     </div>

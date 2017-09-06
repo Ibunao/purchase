@@ -1,10 +1,10 @@
-<?php $this->beginContent('//layouts/main'); ?>
-<?php echo $this->renderPartial('/common/_header',array());?>
+<?php $this->beginContent('@frontend/views/layouts/frondent.php'); ?>
+<?php echo $this->render('/common/_header',array());?>
 <?php echo $content;?>
 <!--右侧主区域-->
 
 <!--弹出-->
-<?php echo $this->renderPartial('/common/_popup');?>
+<?php echo $this->render('/common/_popup');?>
 <script type="text/javascript">
     /*mainnav*/
     function nav_toggle(obj){
