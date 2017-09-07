@@ -1117,6 +1117,29 @@ class ProductModel extends \yii\db\ActiveRecord
                 $items = $this->listSerial($style_sn, $params, $conArr);
             }
         }
+// var_dump($items);exit;
+        //人为规定排序
+
+        $orderList = (new Query)->select(['style_sn', 'min(`order`) as porder'])
+        ->from('meet_product')
+        ->where(['disabled' => 'false'])
+        ->andWhere(['<>', 'order', 999])
+        ->groupBy('style_sn')
+        ->orderBy(['porder' => SORT_ASC])
+        ->indexBy('style_sn')
+        ->all();
+
+        foreach ($orderList as $k => $v) { 
+            if (isset($items[$k])) {
+                $orderProduct[$k] = $items[$k];
+                unset($items[$k]);    
+                   }       
+        }
+// var_dump($orderProduct);exit;
+        if (isset($orderProduct)) {
+            $items = $orderProduct + $items;
+        }
+// var_dump($items);exit;
         //人气排序 1:降序  2:升序
         $hits_sort = [];
         if ($params['hits'] && !empty($items)) {
@@ -1137,7 +1160,11 @@ class ProductModel extends \yii\db\ActiveRecord
             }
 
             $sort2 = $params['hits'] == 2 ? SORT_ASC : SORT_DESC;
-            array_multisort($hits_sort, $sort2, $items);
+            //这个方法应该就没有起到排序的作用
+            //只有在按照人气从低到高的时候使用这个方法
+            if ($params['hits'] == 2) {
+                array_multisort($hits_sort, $sort2, $items);
+            }
         }
 
         //价格升降排序 1:升序  2:降序
@@ -1152,6 +1179,7 @@ class ProductModel extends \yii\db\ActiveRecord
         //这里可以根据查询条件进行缓存的，这样分页太差劲了
         //分页超出
         if (($page - 1) * $pagesize > count($items)) return [];
+        // var_dump($items);exit;
         //从数组中取出指定分页需要的数据
         return array_slice($items, ($page - 1) * $pagesize, $pagesize);
     }

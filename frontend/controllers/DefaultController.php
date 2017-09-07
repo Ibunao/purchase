@@ -71,7 +71,7 @@ class DefaultController extends FBaseController
     	$plv = $request->get('plv');	//价格带
     	$or = $request->get('or', '');		//已订/未订
     	$price = $request->get('price', '');	//价格升降排序
-    	$hits = $request->get('hits', 1);		//人气升降排序
+    	$hits = $request->get('hits', '');		//人气升降排序
     	$serialNum = $request->get('serial_num', '');	//输入搜索
 
     	//搜索条件
@@ -133,7 +133,7 @@ class DefaultController extends FBaseController
     	$model['hits'] = $hits;
     	$model['hits_f'] = $hits == 1 ? 2 : 1;
     	$model['or'] = $or;
-
+// var_dump($model['list']);exit;
     	if ($page > 1) {
     	    return $this->renderPartial('ajaxindex', array('model' => $model, 'c_id' => $c_id, 'b_id' => $b_id,'res'=>$res));
     	} else {
