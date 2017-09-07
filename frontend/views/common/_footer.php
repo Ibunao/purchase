@@ -1,5 +1,5 @@
 <footer class="hd_footer oct_footer">
-    <a class="hd_footer_myorder fl" href="/order/bycount">
+    <a class="hd_footer_myorder fl" href="/forder/bycount">
         <label class="icon_footer_myorder"></label>
         我的订单
     </a>

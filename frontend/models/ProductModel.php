@@ -1084,12 +1084,16 @@ class ProductModel extends \yii\db\ActiveRecord
 
         if(strlen($serial) >4){
             //获取查询的去重的款号 的型号  
-            $row = self::find()->select(['style_sn'])
+            $query = self::find()->select(['style_sn'])
                 ->where(['like', 'model_sn', $serial.'%', false])//右模糊
                 ->andWhere(['disabled' => 'false'])
-                ->andWhere(['is_down' => 0])
-                ->andWhere(['purchase_id' => $params['purchase_id']])
-                ->distinct()
+                ->andWhere(['is_down' => 0]);
+                if ($params['purchase_id'] == Yii::$app->params['purchaseAB']) {
+                    $query->andWhere(['in', 'purchase_id', [1,2]]);
+                }else{
+                    $query->andWhere(['purchase_id' => $params['purchase_id']]);
+                }
+                $row = $query->distinct()
                 ->all();
 
             if (empty($row)) return [];
@@ -1110,7 +1114,6 @@ class ProductModel extends \yii\db\ActiveRecord
                 $items = $this->listStyleSn($row, $params, $conArr);
             }else{
                 $style_sn = '';
-// var_dump($style_sn, $params, $conArr);exit;
                 $items = $this->listSerial($style_sn, $params, $conArr);
             }
         }
@@ -1266,6 +1269,7 @@ class ProductModel extends \yii\db\ActiveRecord
             $items = $query->andWhere(['disabled' => 'false'])
                 ->andWhere(['is_down' => 0])
                 ->orderBy(['serial_num' => SORT_ASC])
+                ->indexBy('product_id')
                 ->asArray()
                 ->all();
             Yii::$app->cache->set('product-list-'.$purchaseId, $items, 3600*24);
@@ -1297,18 +1301,7 @@ class ProductModel extends \yii\db\ActiveRecord
         if (empty($items)) {
             return [];
         }
-        $query = self::find()->select(['product_id'])
-            ->where(['is_down' => 0])
-            ->andWhere(['disabled' => 'false']);
-        if ($purchaseId == Yii::$app->params['purchaseAB']) {
-            $query->andWhere(['or', 'purchase_id', [1,2]]);
-        }else{
-            $query->andWhere(['purchase_id' => $purchaseId]);
-        }
-        //上架商品id
-        $upProductIds = $query
-            ->indexBy('product_id')
-            ->asArray()->all();
+        $upProductIds = $this->getProductUp($purchaseId);
         $model = [];
         //判断订单里的产品是否下架
         foreach ($items as $item) {
@@ -1317,7 +1310,6 @@ class ProductModel extends \yii\db\ActiveRecord
         }
         return $model;
     }
-
      /**
      * id转名称
      *
@@ -1353,7 +1345,6 @@ class ProductModel extends \yii\db\ActiveRecord
      * @return [type]               用户订单详情以及商品是否下架
      */
     public function getThisOrderedInfo($purchase_id, $customer, $model_sn = ''){
-        
         $orderId = $query = (new Query)->select(['order_id'])
             ->from('meet_order')
             ->where(['customer_id' => $customer])
@@ -1364,8 +1355,7 @@ class ProductModel extends \yii\db\ActiveRecord
             $query->andWhere(['purchase_id' => $purchase_id]);
         }
         $orderId = $query->one();
-        
-        if(empty($order_id)) return [];
+        if(empty($orderId)) return [];
         //获取订单的详细信息
         $item_list = (new Query)->select(['nums', 'product_id', 'style_sn', 'model_sn'])
             ->from('meet_order_items')
@@ -1373,7 +1363,6 @@ class ProductModel extends \yii\db\ActiveRecord
             ->andWhere(['disabled' => 'false'])
             ->andFilterWhere(['model_sn' => $model_sn])
             ->all();
-
         if(empty($item_list)) return [];
 
         //是否下架
@@ -1459,9 +1448,15 @@ class ProductModel extends \yii\db\ActiveRecord
     {
         $list = Yii::$app->cache->get('all-product-list-id-' . Yii::$app->session['purchase_id']);
         if (!$list) {
-            $purchase_id = Yii::$app->session['purchase_id'];
-            $result = self::find()->where(['purchase_id' => $purchase_id])
-                ->andWhere(['disabled' => 'false'])
+            $purchaseId = Yii::$app->session['purchase_id'];
+            $query = self::find();
+            if ($purchaseId == Yii::$app->params['purchaseAB']) {
+                $query->where(['in', 'purchase_id' => $purchaseId]);
+            }else{
+                $query->where(['purchase_id' => $purchaseId]);
+            }
+            
+            $result = $query->andWhere(['disabled' => 'false'])
                 ->andWhere(['is_down' => '0'])
                 ->orderBy(['serial_num' => SORT_ASC])
                 ->asArray()
@@ -1474,12 +1469,41 @@ class ProductModel extends \yii\db\ActiveRecord
         return $list;
     }
     /**
+     * use
+     * ordermodel/orderItemItem
+     * 前台使用的
+     * 缓存商品id，包含下架的
+     * @return [type] [description]
+     */
+    public function listcacheAllId()
+    {
+        $list = Yii::$app->cache->get('all-product-list-all-id-' . Yii::$app->session['purchase_id']);
+        if (!$list) {
+            $purchaseId = Yii::$app->session['purchase_id'];
+            $query = self::find();
+            if ($purchaseId == Yii::$app->params['purchaseAB']) {
+                $query->where(['in', 'purchase_id' => $purchaseId]);
+            }else{
+                $query->where(['purchase_id' => $purchaseId]);
+            }
+            
+            $result = $query->andWhere(['disabled' => 'false'])
+                ->asArray()
+                ->all();
+            foreach ($result as $v) {
+                $list[$v['product_id']] = $v;
+            }
+            Yii::$app->cache->set('all-product-list-all-id-' . Yii::$app->session['purchase_id'], $list, 3600 * 24);
+        }
+        return $list;
+    }
+    /**
      * 判断此商品是否为下架
      * @param $product_id
      * @return string
      */
     public function checkThisProductIsDown($product_id){
-        $result = $this->ModelQueryRow("SELECT is_down FROM {{product}} WHERE product_id='{$product_id}' AND disabled='false'");
+        
         $result = self::find()->select(['is_down'])
             ->where(['product_id' => $product_id])
             ->andWhere(['disabled' => 'false'])
@@ -1490,5 +1514,164 @@ class ProductModel extends \yii\db\ActiveRecord
         }else{
             return $product_id;
         }
+    }
+
+    /**
+     * use
+     * forder/byprice
+     * 
+     * @param  [type] $item_list [description]
+     * @return [type]            [description]
+     */
+    public function orderJiaGeDaiItems($item_list)
+    {
+        //按product_id 排列数组
+        foreach ($this->productListCache() as $v) {
+            $all_list[$v['product_id']] = $v;
+        }
+
+        $big = $this->tableValue('cat_big', 'cat_name', 'big_id');
+        $jgd = array(
+            '1' => '0-99',
+            '2' => '100-199',
+            '3' => '200-299',
+            '4' => '300-399',
+            '5' => '400-499',
+            '6' => '500-999',
+            '7' => '1000-1499',
+            '8' => '1500-2000',
+            '9' => '2000以上',
+        );
+        //var_dump($jgd);die;
+        $items = array();
+        $model = array();
+        $total_nums = 0;
+        $js = array();
+        //$all=0;
+        $amount = 0.00;
+        foreach ($item_list as $v) { //$item_list所有已定款式
+            if (!isset($all_list[$v['product_id']])) continue;
+            $product_item = $all_list[$v['product_id']];//$product_item 是循环出来的该产品的product的商品信息
+            $item['product_id'] = $v['product_id'];
+            $item['s_id'] = $product_item['cat_s'];
+            $dpj = $product_item['price_level_id'];
+            $item['dpj'] = $jgd[$dpj];
+            $item['all'] =
+            $item['nums'] = $v['nums'];//购买该产品的数量
+            //总计
+            $total_nums += $v['nums'];//统计购买该产品的数量
+            $model[] = $v['model_sn'];//统计型号
+            $amount += $v['amount'];//统计购买此产品的总价格
+
+            $items[$product_item['cat_b']]['b_id'] = $product_item['cat_b'];//该大类的ID号
+            $items[$product_item['cat_b']]['b_name'] = $big[$product_item['cat_b']];//大类名称
+            $items[$product_item['cat_b']]['model'][] = $v['model_sn'];//此商品的款号
+
+            if (!isset($items[$product_item['cat_b']]['nums'])) $items[$product_item['cat_b']]['nums'] = 0;//判断该大类下是否有该商品
+            $items[$product_item['cat_b']]['nums'] += $v['nums'];//统计该大类的数量
+
+            if (!isset($items[$product_item['cat_b']]['amount'])) $items[$product_item['cat_b']]['amount'] = 0;
+            $items[$product_item['cat_b']]['amount'] += $v['amount'];//统计该大类商品总金额数量
+
+
+            $items[$product_item['cat_b']]['dpj'][$item['dpj']]['s_id'] = $item['s_id'];//显示大类名称
+            $items[$product_item['cat_b']]['dpj'][$item['dpj']]['name'] = $item['dpj'];//显示吊牌价区间
+            //小分类款号
+            $items[$product_item['cat_b']]['dpj'][$item['dpj']]['model'][] = $v['model_sn'];
+
+            //小分类商品数量
+            if (!isset($items[$product_item['cat_b']]['dpj'][$item['dpj']]['nums'])) $items[$product_item['cat_b']]['dpj'][$item['dpj']]['nums'] = 0;
+            $items[$product_item['cat_b']]['dpj'][$item['dpj']]['nums'] += $v['nums'];
+            //var_dump($items[$product_item['cat_b']]['dpj'][$item['s_id']]['nums']);die;
+            //小分类商品总金额数量
+            if (!isset($items[$product_item['cat_b']]['dpj'][$item['dpj']]['amount'])) $items[$product_item['cat_b']]['dpj'][$item['dpj']]['amount'] = 0;
+            $items[$product_item['cat_b']]['dpj'][$item['dpj']]['amount'] += $v['amount'];
+            $js[] = $v['model_sn'];
+//                //小分类季节商品数量
+//                if (!isset($items[$product_item['cat_b']]['dpj'][$item['dpj']]['dpj'])) $items[$product_item['cat_b']]['dpj'][$item['dpj']]['dpj'] = 0;
+////                if (!isset($items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_2'])) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_2'] = 0;
+//                if ($product_item['dpj'] == $item['dpj']) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_1'] += $v['nums'];
+////                if ($product_item['season_id'] == 2) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_2'] += $v['nums'];
+        }
+        $all = count(array_unique($js));
+        return array('list' => $items, 'total_nums' => $total_nums, 'model' => $model, 'amount' => $amount, 'all' => $all);
+    }
+
+    public function orderSprandSumItems($item_list)
+    {
+        $season_one = Yii::$app->params['season_one'];
+        $season_two = Yii::$app->params['season_two'];
+        //按product_id 排列数组
+        foreach ($this->productListCache() as $v) {
+            $all_list[$v['product_id']] = $v;
+        }
+
+        $big = $this->tableValue('cat_big', 'cat_name', 'big_id');
+        $small = $this->tableValue('cat_small', 'cat_name', 'small_id');
+
+        $items = array();
+        $model = array();
+        $total_nums = 0;
+        $season_1 = 0;
+        $season_2 = 0;
+        $amount = 0.00;
+        $js = array();
+        foreach ($item_list as $v) {
+            if (!isset($all_list[$v['product_id']])) continue;
+            $product_item = $all_list[$v['product_id']];
+            $item['product_id'] = $v['product_id'];
+            $item['s_id'] = $product_item['cat_s'];
+            $item['s_name'] = $small[$product_item['cat_s']];
+            $item['nums'] = $v['nums'];
+
+            //总计
+            $total_nums += $v['nums'];
+            $model[] = $v['model_sn'];
+            $amount += $v['amount'];
+
+            $items[$product_item['cat_b']]['b_id'] = $product_item['cat_b'];
+            $items[$product_item['cat_b']]['b_name'] = $big[$product_item['cat_b']];
+            //大分类款号
+            $items[$product_item['cat_b']]['model'][] = $v['model_sn'];
+
+            //大分类商品数量
+            if (!isset($items[$product_item['cat_b']]['nums'])) $items[$product_item['cat_b']]['nums'] = 0;
+            $items[$product_item['cat_b']]['nums'] += $v['nums'];
+            //大分类商品总金额数量
+            if (!isset($items[$product_item['cat_b']]['amount'])) $items[$product_item['cat_b']]['amount'] = 0;
+            $items[$product_item['cat_b']]['amount'] += $v['amount'];
+
+            //大分类季节商品数量
+            if (!isset($items[$product_item['cat_b']]['season_id_1'])) $items[$product_item['cat_b']]['season_id_1'] = 0;
+            if (!isset($items[$product_item['cat_b']]['season_id_2'])) $items[$product_item['cat_b']]['season_id_2'] = 0;
+            if ($product_item['season_id'] == $season_one) {
+                $items[$product_item['cat_b']]['season_id_1'] += $v['nums'];
+                $season_1 += $v['nums'];
+            }
+            if ($product_item['season_id'] == $season_two) {
+                $items[$product_item['cat_b']]['season_id_2'] += $v['nums'];
+                $season_2 += $v['nums'];
+            }
+
+            $items[$product_item['cat_b']]['small'][$item['s_id']]['s_id'] = $item['s_id'];
+            $items[$product_item['cat_b']]['small'][$item['s_id']]['name'] = $small[$item['s_id']];
+            //小分类款号
+            $items[$product_item['cat_b']]['small'][$item['s_id']]['model'][] = $v['model_sn'];
+
+            //小分类商品数量
+            if (!isset($items[$product_item['cat_b']]['small'][$item['s_id']]['nums'])) $items[$product_item['cat_b']]['small'][$item['s_id']]['nums'] = 0;
+            $items[$product_item['cat_b']]['small'][$item['s_id']]['nums'] += $v['nums'];
+            //小分类商品总金额数量
+            if (!isset($items[$product_item['cat_b']]['small'][$item['s_id']]['amount'])) $items[$product_item['cat_b']]['small'][$item['s_id']]['amount'] = 0;
+            $items[$product_item['cat_b']]['small'][$item['s_id']]['amount'] += $v['amount'];
+
+            //小分类季节商品数量
+            if (!isset($items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_1'])) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_1'] = 0;
+            if (!isset($items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_2'])) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_2'] = 0;
+            if ($product_item['season_id'] == $season_one) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_1'] += $v['nums'];
+            if ($product_item['season_id'] == $season_two) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_2'] += $v['nums'];
+        }
+        $all = count(array_unique($js));
+        return array('list' => $items, 'total_nums' => $total_nums, 'season_1' => $season_1, 'season_2' => $season_2, 'model' => $model, 'amount' => $amount, 'all' => $all);
     }
 }

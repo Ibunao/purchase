@@ -277,13 +277,13 @@ class OrderModel extends \yii\db\ActiveRecord
      */
     public function orderItems($purchaseId, $customerId)
     {   
-        $cacheName = 'order-items-' . $purchaseId . '_' . $customerId;
-        $model = Yii::$app->cache->get($cacheName);
+        // $cacheName = 'order-items-' . $purchaseId . '_' . $customerId;
+        // $model = Yii::$app->cache->get($cacheName);
 
-        if (!$model) {
+        // if (!$model) {
             $model = $this->orderCache($purchaseId, $customerId);
-            Yii::$app->cache->set($cacheName, $model);
-        }
+            // Yii::$app->cache->set($cacheName, $model);
+        // }
         //原代码有的，可以在更新状态的时候直接删除缓存就行了
         // else{
         //     //如果订单已经存在 
@@ -304,8 +304,9 @@ class OrderModel extends \yii\db\ActiveRecord
     /**
      * use
      * this/orderItems
+     * this/AddAjax
      * 
-     * 要缓存的订单信息
+     * 要缓存的订单信息     没缓存
      * @param  [type] $purchaseId 订购会id
      * @param  [type] $customerId  用户id
      * @return [type]              [description]
@@ -1004,42 +1005,48 @@ foreach ($queryAll as $key => $order) {
         //如果该会员已经生成订单，在原来的订单上添加订购的商品
         //会员订单是否生成
         $order_list = $this->orderItems($purchase_id, $customer_id);//已经订购的产品
+        // var_dump($order_list);exit;
         //订单order_id获取
         if ($order_list['order_row']) {
             $order_id = $order_list['order_row']['order_id'];
+            //更新订单时间
+            $orderModel = OrderModel::find()
+                ->where(['order_id' => $order_list['order_row']['order_id']])
+                ->one();
+            $orderModel->edit_time = $create_time;
+            $result = $orderModel->save();
         }else {
+            //创建订单
             $order_id = $this->buildOrderNo();
-        }
-var_dump($product, $order_id, $order_list['item_list']);exit;
-        //订单商品列表
-        $item_list = $this->itemListAjax($product, $order_id, $order_list['item_list']);
 
-        //订单主表
-        if (isset($order_list['order_row']) && $order_list['order_row']) {
-            $order_sql = "UPDATE meet_order SET edit_time = {$create_time} WHERE order_id = {$order_list['order_row']['order_id']}";
-        } else {
-            $order_sql = "INSERT INTO meet_order (order_id,purchase_id,status,customer_id,customer_name,cost_item,create_time) VALUE
-            ({$order_id},{$purchase_id},'active',{$customer_id},'{$customer_name}','{$item_list['total']}',{$create_time})";
+            $orderModel = new OrderModel;
+            $orderModel->order_id = $order_id;
+            $orderModel->purchase_id = $purchase_id;
+            $orderModel->status = 'active';
+            $orderModel->customer_id = $customer_id;
+            $orderModel->customer_name = $customer_name;
+            $orderModel->cost_item = 0;
+            $orderModel->create_time = $create_time;
+            $result = $orderModel->save();
+            
         }
-        //事务处理
-        $transaction = Yii::app()->db->beginTransaction();
-        try {
-            $this->ModelExecute($order_sql);
-            $this->ModelExecute($item_list['sql']);
-            $transaction->commit();
-            //更新订单缓存
-            $this->orderCache($purchase_id, $customer_id);
-            return true;
-        } catch (Exception $e) {
-            $transaction->rollback();
+        if (empty($result)) {
             return false;
         }
+        //订单商品列表
+        $result = $this->itemListAjax($product, $order_id, $order_list['item_list']);
+        return $result;
+        //更新订单缓存
+        // $this->orderCache($purchase_id, $customer_id);
+    
     }
     /**
      * use
      * this->addAjax
      *
-     * 
+     * 根据用户提交的预定商品来进行更新订单详情状态
+     *
+     * 待解决，订单的总额信息不准
      * @param  [type] $product   预定提交的产品
      * @param  [type] $order_id  订单id
      * @param  [type] $item_list 订单已经存在的产品
@@ -1052,7 +1059,7 @@ var_dump($product, $order_id, $order_list['item_list']);exit;
         $product_list = $productModel->listcacheId();
         $sql = '';
         $order_product_list = isset($item_list) && $item_list ? $item_list : array();//已定单 数量等
-        var_dump($product);exit;
+// var_dump($order_product_list);exit;
         foreach ($product as $k => $v) {
             $num = isset($v[1]) ? $v[1] : '';
             if ($num == 0) {
@@ -1062,15 +1069,15 @@ var_dump($product, $order_id, $order_list['item_list']);exit;
             //产品下架
             if(empty($res)){
                 //下架的产品在再次添加的时候如果检测到下架，将已经添加到购物车中的产品改为删除状态
-                $where = "order_id = " . $order_id . "AND product_id = '" . $v[0] . "' AND disabled='false'";
-                $delete_data_arr[] = OrderItemsModel::updateAll(['disabled' => 'true'], $where);
+                $where = "order_id = " . $order_id . " AND product_id = '" . $v[0] . "' AND disabled='false'";
+                $delete_data_arr = OrderItemsModel::updateAll(['disabled' => 'true'], $where);
                 continue;
             }
             //如果用户将添加到商品订单的商品调到0了
             if ($num == '') {
                 if (isset($product_list[$v[0]]) && $product_list[$v[0]]){
-                    $where = "order_id = " . $order_id . "AND product_id = '" . $v[0] . "' AND disabled='false'";
-                    $delete_data_arr[] = OrderItemsModel::updateAll(['disabled' => 'true'], $where);
+                    $where = "order_id = " . $order_id . " AND product_id = '" . $v[0] . "' AND disabled='false'";
+                    $delete_data_arr = OrderItemsModel::updateAll(['disabled' => 'true'], $where);
                 }
                 continue;
             }
@@ -1087,31 +1094,227 @@ var_dump($product, $order_id, $order_list['item_list']);exit;
                 $update = [
                     'price' => $price,
                     'amount' => $amount,
-                    'nums' => $nums,
+                    'nums' => $num,
                 ];
-                $update_data_arr[] = OrderItemsModel::updateAll($update, $where);
+                $result = OrderItemsModel::updateAll($update, $where);
+                // if (!$result) {
+                //     return false;
+                // }
             } else {
                 //插入
                 $insert_data_arr[] = [$order_id, $v[0], $product_sn, $style_sn, $model_sn, $name, $price, $amount, $num];
             }
         }
         //新增商品
-        if (isset($insert_data_arr) && $insert_data_arr)
+        if (isset($insert_data_arr) && $insert_data_arr){
             $keys = ['order_id', 'product_id', 'product_sn', 'style_sn', 'model_sn', 'name', 'price', 'amount', 'nums'];
-$result = Yii::$app->db
-->createCommand()
-->batchInsert(OrderItemsModel::tableName(),
-    $keys,
-    $insert_data_arr)
-->execute();
-
-        //更新商品
-        if (isset($update_data_arr) && $update_data_arr)
-            $sql .= implode('', $update_data_arr);
-        //删除商品
-        if (isset($delete_data_arr) && $delete_data_arr) {
-            $sql .= implode('', $delete_data_arr);
+        
+            $result = Yii::$app->db
+            ->createCommand()
+            ->batchInsert(OrderItemsModel::tableName(),
+                $keys,
+                $insert_data_arr)
+            ->execute();
+            if (!$result) {
+                return false;
+            }
         }
-        return array('sql' => $sql, 'total' => 0);
+    return true;
     }
+
+    /**
+     * use
+     * forder/GetAllPrice
+     * 
+     * 获取该用户的订货总量、金额、完成率、目标
+     * @param $customer_id
+     * @return mixed
+     */
+    public function getCustomerOrdered($customer_id)
+    {
+        $res = (new Query)->select(['SUM(i.nums) as nums', 'sum(i.amount) as cost_item'])
+            ->from('meet_order as o')
+            ->leftJoin('meet_order_items as i', 'i.order_id = o.order_id')
+            ->where(['o.customer_id' => $customer_id])
+            ->andWhere(['i.disabled' => 'false'])
+            ->one();
+        $target = (new Query)->select(['target'])
+            ->from('meet_customer')
+            ->where(['customer_id' => $customer_id])
+            ->one();
+        $result['nums'] = isset($res['nums']) ? $res['nums'] : 0;
+        $result['cost_item'] = isset($res['cost_item']) ? $res['cost_item'] : 0;
+        $result['target'] = isset($target['target']) ? $target['target'] : 0;
+        if ($result['target'] == 0) {
+            $result['percent'] = "0";
+        } else {
+            $result['percent'] = (string)round($result['cost_item'] / $result['target'] * 100, 2);
+        }
+        return $result;
+    }
+
+    /**
+     * use
+     * forder/Bydownuser
+     *
+     * 
+     * 获取下线订单ID
+     *
+     * @param $customer_id
+     * @return bool|mixed
+     */
+    public function getUserDownUsers($customer_id)
+    {
+        $customer_info = (new Query)->select(['code'])
+            ->from('meet_customer')
+            ->where(['customer_id' => $customer_id])
+            ->one();
+        if(!$customer_info) return false;
+        $result = (new Query)->select(['c.name', 'c.code', 'c.target', 'o.cost_item', 'c.customer_id', 'c.purchase_id'])
+            ->from('meet_customer as c')
+            ->leftJoin('meet_order as o', 'c.customer_id=o.customer_id')
+            ->andWhere(['c.parent_id' => 0])
+            ->andWhere(['c.agent' => $customer_info['code']])
+            ->andWhere(['o.disabled' => 'false'])
+            ->andWhere(['c.disabled' => 'false'])
+            ->all();
+        if(!$result){
+            return [];
+        }else{
+            foreach($result as &$v)
+            {
+                $v['percent'] = $v['target'] == 0 ?  '0%'  : round($v['cost_item'] / $v['target'] * 100 , 2). '%';
+                $v['left_cost'] = $v['target'] > $v['cost_item'] ? $v['target'] - $v['cost_item'] : 0;
+            }
+            return $result;
+        }
+    }
+    /**
+     * use
+     * forder/submit
+     * 订单提交
+     *
+     * @param $purchase_id
+     * @param $customer_id
+     * @return mixed
+     */
+    public function orderSubmit($purchase_id, $customer_id)
+    {
+        $where = 'purchase_id = ' .$purchase_id . ' AND customer_id = ' .$customer_id;
+        $result = self::updateAll(['status' => 'confirm'], $where);
+        
+        //更新订单缓存
+        // $this->orderCache($purchase_id, $customer_id);
+
+        return $result;
+    }
+    /**
+     * 订单撤销
+     *
+     * @param $purchase_id
+     * @param $customer_id
+     * @return mixed
+     */
+    public function orderRepealCheck($purchase_id, $customer_id)
+    {
+        $order_row = self::find()->select(['status'])
+            ->where(['purchase_id' => $purchase_id])
+            ->andWhere(['customer_id' => $customer_id])
+            ->asArray()
+            ->one();
+
+        if ($order_row['status'] != 'confirm') return false;
+
+        return true;
+    }
+    /**
+     * 订单撤销
+     *
+     * @param $purchase_id
+     * @param $customer_id
+     * @return mixed
+     */
+    public function orderRepeal($purchase_id, $customer_id)
+    {
+        $where = 'purchase_id = ' .$purchase_id . ' AND customer_id = ' .$customer_id;
+        $result = self::updateAll(['status' => 'active'], $where);
+        //更新订单缓存
+        // $this->orderCache($purchase_id, $customer_id);
+
+        return $result;
+    }
+    /**
+     * 商品列表
+     *
+     * @param $purchase_id
+     * @param $customer_id
+     * @param $page
+     * @internal $page
+     * @return array
+     */
+    public function fOrderItemList($purchase_id, $customer_id, $page)
+    {
+        $model['order_row'] = self::find()->select(['order_id'])->where(['purchase_id' => $purchase_id])
+            ->andWhere(['customer_id' => $customer_id])
+            ->asArray()
+            ->one();
+        if (!isset($model['order_row']) || !$model['order_row']) return array('order_row' => array(), 'item_list' => array());
+        $model_sn = $this->orderItemItem($model['order_row']['order_id'], $page);
+
+        if (!$model_sn) return array('order_row' => $model['order_row'], 'item_list' => array());
+
+        $item_list =  (new Query)
+            ->from('meet_order_items')
+            ->where(['disabled' => 'false'])
+            ->andWhere(['order_id' => $model['order_row']['order_id']])
+            ->andWhere(['in', 'model_sn', $model_sn])
+            ->orderBy([
+                        'model_sn' => SORT_ASC,
+                    ])
+            ->all();
+
+        $res = (new ProductModel)->listcacheAllId();
+        foreach ($item_list as $v) {
+            $model['item_list'][$v['product_id']] = $v;
+            $model['item_list'][$v['product_id']]['is_down'] = isset($res[$v['product_id']]['is_down']) ? $res[$v['product_id']]['is_down'] : 0;
+            $model['item_list'][$v['product_id']]['type_id'] = isset($res[$v['product_id']]['type_id']) ? $res[$v['product_id']]['type_id'] : '';
+            $model['item_list'][$v['product_id']]['wave_id'] = isset($res[$v['product_id']]['wave_id']) ? $res[$v['product_id']]['wave_id'] : '' ;
+            $model['item_list'][$v['product_id']]['img_url'] = isset($res[$v['product_id']]['img_url']) ? $res[$v['product_id']]['img_url'] : '';
+            $model['item_list'][$v['product_id']]['name'] = isset($res[$v['product_id']]['name']) ? $res[$v['product_id']]['name'] : '';
+            $model['item_list'][$v['product_id']]['memo'] = isset($res[$v['product_id']]['memo']) ? $res[$v['product_id']]['memo'] : '';
+            $model['item_list'][$v['product_id']]['product_sn'] = isset($res[$v['product_id']]['product_sn']) ? $res[$v['product_id']]['product_sn'] : '';
+            $model['item_list'][$v['product_id']]['product_id'] = isset($res[$v['product_id']]['product_id']) ? $res[$v['product_id']]['product_id'] : '';
+            $model['item_list'][$v['product_id']]['cost_price'] = isset($res[$v['product_id']]['cost_price']) ? $res[$v['product_id']]['cost_price'] : '';
+            $model['item_list'][$v['product_id']]['serial_num'] = isset($res[$v['product_id']]['serial_num']) ? $res[$v['product_id']]['serial_num'] : '';
+        }
+        return $model;
+    }
+    /**
+     * 商品列表
+     *
+     * @param $order_id
+     * @param $page
+     * @internal param $purchase_id
+     * @internal param $customer_id
+     * @return array
+     */
+    public function orderItemItem($order_id, $page)
+    {
+        $start = ($page - 1) * 8;
+        $item_list = (new Query)->select(['model_sn'])
+            ->from('meet_order_items')
+            ->where(['disabled' => 'false'])
+            ->andWhere(['order_id' => $order_id])
+            ->orderBy(['item_id' => SORT_DESC])
+            ->all();
+
+        $model_sn_items = array();
+        foreach ($item_list as $v) {
+            $model_sn_items[$v['model_sn']] = $v['model_sn'];
+        }
+        $model_sn = array_keys($model_sn_items);
+        $model_sn = array_slice($model_sn, $start, 8);
+        return $model_sn;
+    }
+  
 }

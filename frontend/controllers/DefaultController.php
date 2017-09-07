@@ -80,8 +80,9 @@ class DefaultController extends FBaseController
     	$c_id = $b_id = 0;
     	if ($c_ids) {
     	    $cat_arr = explode(',', $c_ids);
-
+            //大分类
     	    if (isset($cat_arr[0])) $b_id = $cat_arr[0];
+            //小分类
     	    if (isset($cat_arr[1])) $c_id = $cat_arr[1];
 
     	    if ($c_id) {
@@ -121,10 +122,9 @@ class DefaultController extends FBaseController
     	    'customer_id' => $this->customerId,
     	    'hits' => $hits,
     	];
-    	//一个用户的订单状态
+    	//一个用户的订单状态，根据状态改变预定按钮的状态
     	$res=$productModel->checkStatus($params['customer_id']);
 
-// var_dump($conArr, $serialNum, $params, $price, $page);exit;
         //获取搜索的商品
         $model['list'] = $productModel->newitems($conArr, $serialNum, $params, $price, $page);
     	$model['c_id'] = $c_id;
@@ -164,6 +164,7 @@ class DefaultController extends FBaseController
                 if ($v['model_sn'] == $model_sn) $total += $v['nums'];
             }
         }
+        // var_dump(array('list' => $list, 'total' => $total, 'order_items'=>$order));exit;
         return $this->renderPartial('detail', array('list' => $list, 'total' => $total, 'order_items'=>$order));
     }
 }

@@ -83,4 +83,71 @@ class OutputController extends Controller
         $export->export_finish();
 
     }
+    /**
+     * 商品部根据地区来删减订单数量需求表
+     * @return [type] [description]
+     */
+    public function actionOutput1()
+    {
+        $query = new Query;
+        $select = ['c.name', 'p.cat_s', 'p.name as pname', 'p.model_sn', 'p.color_id', 'p.size_id', 'oi.nums'];
+        $result = $query->select($select)
+            ->from('meet_customer as c')
+            ->leftJoin('meet_order as o', 'o.customer_id = c.customer_id')
+            ->leftJoin('meet_order_items as oi', 'oi.order_id = o.order_id')
+            ->leftJoin('meet_product as p', 'p.product_id = oi.product_id')
+            ->where(['o.status' => 'finish'])
+            ->all();
+        $catS = (new Query)->select(['cat_name', 'small_id'])
+            ->from('meet_cat_small')
+            ->indexBy('small_id')
+            ->all();
+        $colorArr = (new Query)->select(['color_name', 'color_id', 'color_no'])
+            ->from('meet_color')
+            ->indexBy('color_id')
+            ->all();
+        $sizeArr = (new Query)->select(['size_name', 'size_id', 'size_no'])
+                ->from('meet_size')
+                ->indexBy('size_id')
+                ->all();
+
+        $data = [];
+        foreach ($result as $key => $value) {
+            $data[$value['name'].'_'.$value['model_sn']][] = 
+            [
+                'name' => $value['name'],
+                'cats' => $catS[$value['cat_s']]['cat_name'],
+                'model_sn' => $value['model_sn'],
+                'pname' => $value['pname'],
+                'colorno' => $colorArr[$value['color_id']]['color_no'],
+                'colorname' => $colorArr[$value['color_id']]['color_name'],
+                'sizeno' => $sizeArr[$value['size_id']]['size_no'],
+                'sizename' => $sizeArr[$value['size_id']]['size_name'],
+                'nums' => $value['nums']
+            ];
+
+        }
+        $ding = [];
+        foreach ($data as $key => $value) {
+            foreach ($value as $k => $v) {
+                
+            }
+        }
+        $keys = [
+            '客户名称',
+            '小类',
+            '款号',
+            '产品名',
+            '颜色代码',
+            '颜色名称',
+            '尺寸代码',
+            '尺寸名称',
+            '数量',
+        ];
+        $filename = 'abc';
+        $export = new IoXls();
+        $export->export_begin($keys, $filename, count($data));
+        $export->export_rows($data);
+        $export->export_finish();
+    }
 }

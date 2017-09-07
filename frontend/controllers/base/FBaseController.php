@@ -5,6 +5,7 @@ namespace frontend\controllers\base;
 use Yii;
 use yii\web\Controller;
 use frontend\models\OrderModel;
+use yii\db\Query;
 /**
  * 前台基础控制器
  */
@@ -44,7 +45,10 @@ class FBaseController extends Controller
         $orderModel = new OrderModel;
         $items = $orderModel->orderItems($this->purchaseId, $this->customerId);
         $this->totalNum = isset($items['order_row']['total_num'])?$items['order_row']['total_num']:0;
-        $this->amount = isset($items['order_row']['cost_item'])?$items['order_row']['cost_item']:'0.00';
+        $this->amount = (new Query)->from('meet_order_items')
+            ->where(['order_id' => $items['order_row']['order_id']])
+            ->andWhere(['disabled' => 'false'])
+            ->sum('amount');
         $this->orderState = isset($items['order_row']['status'])?$items['order_row']['status']:'active';
     }
     /**

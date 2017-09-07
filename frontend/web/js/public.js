@@ -258,18 +258,18 @@ $('.fancybox3').fancybox();
 
 //确定提交订单
 $('#bt_order').on('click',function(){
-    location.href='/order/submit';
+    location.href='/forder/submit';
 });
 $('.fancybox4').fancybox();
 
 //撤销订单
 $('#bt_order2').on('click',function(){
-    location.href='/order/repeal';
+    location.href='/forder/repeal';
 });
 
 $('.repeal').click(function(){
     $.post(
-        '/order/repealcheck',
+        '/forder/repealcheck',
         {},
         function (result) {
             if (result == 200) {
@@ -283,7 +283,7 @@ $('.repeal').click(function(){
 });
 
 $('#bt_order3').on('click',function(){
-    location.href='/order/repeal';
+    location.href='/forder/repeal';
 });
 
 $('.fancybox_img').fancybox();
