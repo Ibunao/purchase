@@ -112,4 +112,203 @@
 </ul>
 <!--总计-->
 </div>
+
+<div id="main" style="width: 400px;height:600px; float: left;"></div>
+<div id="one" style="width: 600px;height:600px; float: left;"></div>
+
+<script type="text/javascript">
+
+//饼状图
+var myChart = echarts.init(document.getElementById('main'));
+
+// 指定图表的配置项和数据
+var option = {
+    title : {
+        text: '订货会种类总额占比',
+        subtext: '总额占比',
+        x:'center'
+    },
+    tooltip : {
+        trigger: 'item',
+        formatter: "{a} <br/>{b} : {c} ({d}%)"
+    },
+    legend: {
+        bottom: 100,
+        left: 'center',
+        data: <?=$bingname ;?>
+    },
+    series : [
+        {
+            name: '大类总额占比',
+            type: 'pie',
+            radius : '55%',
+            center: ['50%', '40%'],
+            data: <?=$bingdata ;?>,
+            itemStyle: {
+                emphasis: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            }
+        }
+    ]
+};
+
+myChart.setOption(option);
+
+//饼状图
+var myChart = echarts.init(document.getElementById('one'));
+option = {
+    title : {
+        text: '各价格带数量占比',
+        subtext: '数量占比',
+        x:'center'
+    },
+    tooltip : {
+        trigger: 'axis',
+        axisPointer : {            // 坐标轴指示器，坐标轴触发有效
+            type : 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
+        },
+        formatter: function(data) 
+        {
+            console.log(data);
+            str = '';
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].value == '') {continue;}
+                str += data[i].seriesName +  '：' + data[i].value + '个' + '<br/>';
+            }
+            return str;
+        }
+    },
+
+    legend: {
+        data: ['0-99','100-199','200-299','300-399','400-499','500-999','1000-1499','1500-2000','2000以上',]
+    },
+    grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        containLabel: true
+    },
+    xAxis:  {
+        type: 'category',
+        data: <?=$bingname ;?>
+    },
+    yAxis: {
+        type: 'value'
+    },
+    series: [
+        {
+            name: '0-99元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$a ;?>
+        },
+        {
+            name: '100-199元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$b ;?>
+        },
+        {
+            name: '200-299元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$c ;?>
+        },
+        {
+            name: '300-399元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$d ;?>
+        },
+        {
+            name: '400-499元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$e ;?>
+        },
+        {
+            name: '500-999元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$f ;?>
+        },
+        {
+            name: '1000-1499元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$g ;?>
+        },
+        {
+            name: '1500-2000元',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$h ;?>
+        },
+        {
+            name: '2000元以上',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'insideRight'
+                }
+            },
+            data: <?=$l ;?>
+        }
+    ]
+};
+myChart.setOption(option);
+</script>
 <?= $this->render('/common/_footer_order',array());?>

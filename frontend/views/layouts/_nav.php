@@ -1,3 +1,5 @@
+<!-- 引入 ECharts 文件 -->
+<script src="/js/echarts.common.min.js"></script>
 <div class="order_nav w100" id="hdNav">
     <ul>
         <?php if(isset($sel) && $sel): ?>

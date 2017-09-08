@@ -123,4 +123,166 @@
 </ul>
 <!--总计-->
 </div>
+
+
+<div id="main" style="width: 400px;height:600px; float: left;"></div>
+<div id="one" style="width: 300px;height:400px; float: left;"></div>
+<div id="two" style="width: 300px;height:400px;float: left;"></div>
+<script type="text/javascript">
+
+//饼状图
+var myChart = echarts.init(document.getElementById('main'));
+var data = JSON.parse('<?=$bing ;?>');
+
+// 指定图表的配置项和数据
+var option = {
+    title : {
+        text: '订货会季节占比',
+        subtext: '数量占比',
+        x:'center'
+    },
+    tooltip : {
+        trigger: 'item',
+        formatter: "{a} <br/>{b} : {c} ({d}%)"
+    },
+    legend: {
+        bottom: 100,
+        left: 'center',
+        data: ['<?=Yii::$app->params['season_one_name'].'\',\''.Yii::$app->params['season_two_name'] ?>']
+    },
+    series : [
+        {
+            name: '订货会季节数量占比',
+            type: 'pie',
+            radius : '55%',
+            center: ['50%', '40%'],
+            data:data,
+            itemStyle: {
+                emphasis: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            }
+        }
+    ]
+};
+
+myChart.setOption(option);
+
+//第一个季节图
+var myChart = echarts.init(document.getElementById('one'));
+
+option = {
+    title : {
+        text: '<?=Yii::$app->params['season_one_name'] ;?>季各大类占比',
+        subtext: '数量占比',
+        x:'center'
+    },
+    color: ['#3398DB'],
+    tooltip : {
+        trigger: 'axis',
+        axisPointer : {            
+            type : 'shadow'  
+        }
+    },
+    grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+    },
+    xAxis : [
+        {
+            type : 'category',
+            data : <?=$onecat ;?>,
+            axisTick: {
+                alignWithLabel: true
+            }
+        }
+    ],
+    yAxis : [
+        {
+            type : 'value'
+        }
+    ],
+    series : [
+        {
+            name:'数量',
+            type:'bar',
+            barWidth: '60%',
+            data:<?=$onevalue ;?>
+        }
+    ],
+    itemStyle: { 
+        normal: { 
+            color: function(params) { 
+            　//首先定义一个数组 
+            var colorList = [ 
+                '#C33531', '#61a080', '#334b5c', '#c23531', '#2f4554', '#d48235', '#9fdabf'
+            ]; 
+            return colorList[params.dataIndex] 
+            }, 
+        } 
+    } 
+};
+myChart.setOption(option);
+//第二个季节图
+var myChart = echarts.init(document.getElementById('two'));
+
+option = {
+    title : {
+        text: '<?=Yii::$app->params['season_two_name'] ;?>季各大类占比',
+        subtext: '数量占比',
+        x:'center'
+    },
+    color: ['#3398DB'],
+    tooltip : {
+        trigger: 'axis',
+        axisPointer : {            // 坐标轴指示器，坐标轴触发有效
+            type : 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
+        }
+    },
+    grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+    },
+    xAxis : [
+        {
+            type : 'category',
+            data : <?=$twocat ;?>,
+            axisTick: {
+                alignWithLabel: true
+            }
+        }
+    ],
+    yAxis : [
+        {
+            type : 'value'
+        }
+    ],
+    series : [
+        {
+            name:'数量',
+            type:'bar',
+            barWidth: '60%',
+            data:<?=$twovalue ;?>
+        }
+    ],
+    itemStyle: { 
+        normal: { 
+            color: function(params) { 
+            　//首先定义一个数组 
+            var colorList = [ 
+                '#C33531', '#61a080', '#334b5c', '#c23531', '#2f4554', '#d48235', '#9fdabf'
+            ]; 
+            return colorList[params.dataIndex] 
+            }, 
+        } 
+    } 
+};
+myChart.setOption(option);
+</script>
 <?= $this->render('/common/_footer_order',array());?>

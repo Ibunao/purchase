@@ -47,8 +47,38 @@ class ForderController extends FBaseController
         $productModel = new ProductModel();
         $order = $orderModel->orderItems($this->purchaseId, $this->customerId);
         $result = $productModel->orderSprandSumItems($order['item_list']);
-        // var_dump($result);exit;
-        return $this->render('bycount', array('list' => $result['list'], 'result' => $result));
+// var_dump(array('list' => $result['list'], 'result' => $result));exit;
+        //图形数据
+        $charts['bing'] = [];
+        $charts[Yii::$app->params['season_one_name']] = 0;
+        $charts[Yii::$app->params['season_two_name']] = 0;
+        $oneCatArr = [];
+        $twoCatArr = [];
+        foreach ($result['list'] as $k => $v) {
+            $charts[Yii::$app->params['season_one_name']] += $v['season_id_1'];
+            $charts[Yii::$app->params['season_two_name']] += $v['season_id_2'];
+            if ($v['season_id_1'] != 0) {
+                $oneCatArr['cat'][] = urlencode($v['b_name']);
+                $oneCatArr['value'][] = $v['season_id_1'];
+            }
+            if ($v['season_id_2'] != 0) {
+                $twoCatArr['cat'][] = urlencode($v['b_name']);
+                $twoCatArr['value'][] = $v['season_id_2'];
+            }
+            
+        }
+        $oneCatArr['cat'] = urldecode(json_encode($oneCatArr['cat']));
+        $oneCatArr['value'] = json_encode($oneCatArr['value']);
+        $twoCatArr['cat'] = urldecode(json_encode($twoCatArr['cat']));
+        $twoCatArr['value'] = json_encode($twoCatArr['value']);
+        $charts['bing'][] = ['value'=>$charts[Yii::$app->params['season_one_name']], 'name' => urlencode(Yii::$app->params['season_one_name'])];
+        $charts['bing'][] = ['value'=>$charts[Yii::$app->params['season_two_name']], 'name' => urlencode(Yii::$app->params['season_two_name'])];
+        $charts['bing'] = json_encode($charts['bing']);
+
+
+
+        // var_dump(json_encode($charts['bing']));exit;
+        return $this->render('bycount', array('list' => $result['list'], 'result' => $result, 'bing' => urldecode($charts['bing']), 'onecat' => $oneCatArr['cat'], 'onevalue' => $oneCatArr['value'], 'twocat' => $twoCatArr['cat'], 'twovalue' => $twoCatArr['value']));
     }
 
     /**
@@ -61,8 +91,77 @@ class ForderController extends FBaseController
         $productModel = new ProductModel();
         $order = $orderModel->orderItems($this->purchaseId, $this->customerId);//已经购买的产品
         $result = $productModel->orderJiaGeDaiItems($order['item_list']);
+        // var_dump($result['list'][1]['dpj']);exit;
+        $bing = [];
+        $zhu = [];
+        foreach ($result['list'] as $k => $v) {
+            $bing['name'][] = urlencode($v['b_name']);
+            $bing['amount'][] = ['value' => $v['amount'], 'name' => urlencode($v['b_name'])];
+            // $zhu['0-99'] 
+            if (isset($v['dpj']['0-99'])) {
+                $zhu['a'][] = $v['dpj']['0-99']['nums'];
+            }else{
+                $zhu['a'][] = '';
+            }
+            // $zhu['100-199'] 
+            if (isset($v['dpj']['100-199'])) {
+                $zhu['b'][] = $v['dpj']['100-199']['nums'];
+            }else{
+                $zhu['b'][] = '';
+            }
+            // $zhu['200-299'] 
+            if (isset($v['dpj']['200-299'])) {
+                $zhu['c'][] = $v['dpj']['200-299']['nums'];
+            }else{
+                $zhu['c'][] = '';
+            }
+            // $zhu['300-399'] 
+            if (isset($v['dpj']['300-399'])) {
+                $zhu['d'][] = $v['dpj']['300-399']['nums'];
+            }else{
+                $zhu['d'][] = '';
+            }
+            // $zhu['400-499'] 
+            if (isset($v['dpj']['400-499'])) {
+                $zhu['e'][] = $v['dpj']['400-499']['nums'];
+            }else{
+                $zhu['e'][] = '';
+            }
+            // $zhu['500-999'] 
+            if (isset($v['dpj']['500-999'])) {
+                $zhu['f'][] = $v['dpj']['500-999']['nums'];
+            }else{
+                $zhu['f'][] = '';
+            }
+            // $zhu['1000-1499'] 
+            if (isset($v['dpj']['1000-1499'])) {
+                $zhu['g'][] = $v['dpj']['1000-1499']['nums'];
+            }else{
+                $zhu['g'][] = '';
+            }
+            // $zhu['1500-2000'] 
+            if (isset($v['dpj']['1500-2000'])) {
+                $zhu['h'][] = $v['dpj']['1500-2000']['nums'];
+            }else{
+                $zhu['h'][] = '';
+            }
+            // $zhu['2000以上'] 
+            if (isset($v['dpj']['2000以上'])) {
+                $zhu['l'][] = $v['dpj']['2000以上']['nums'];
+            }else{
+                $zhu['l'][] = '';
+            }
 
-        return $this->render('byprice', array('list' => $result['list'], 'result' => $result));
+        }
+        foreach ($zhu as $k => $v) {
+            $zhu[$k] = json_encode($v);
+        }
+        $bing['name'] = urldecode(json_encode($bing['name']));
+        $bing['amount'] = urldecode(json_encode($bing['amount']));
+        return $this->render('byprice', array('list' => $result['list'], 'result' => $result, 'bingname' => $bing['name'], 'bingdata' => $bing['amount'],
+            
+
+            )+$zhu);
     }
     /**
      * 我的分销

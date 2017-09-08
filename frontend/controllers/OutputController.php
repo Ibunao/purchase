@@ -113,7 +113,7 @@ class OutputController extends Controller
 
         $data = [];
         foreach ($result as $key => $value) {
-            $data[$value['name'].'_'.$value['model_sn']][] = 
+            $data[] = 
             [
                 'name' => $value['name'],
                 'cats' => $catS[$value['cat_s']]['cat_name'],
@@ -127,12 +127,7 @@ class OutputController extends Controller
             ];
 
         }
-        $ding = [];
-        foreach ($data as $key => $value) {
-            foreach ($value as $k => $v) {
-                
-            }
-        }
+
         $keys = [
             '客户名称',
             '小类',

@@ -1642,6 +1642,8 @@ class ProductModel extends \yii\db\ActiveRecord
         $total_nums = 0;
         $season_1 = 0;
         $season_2 = 0;
+        $season_1_amount = 0.00;
+        $season_2_amount = 0.00;
         $amount = 0.00;
         $js = array();
         foreach ($item_list as $v) {
@@ -1675,10 +1677,12 @@ class ProductModel extends \yii\db\ActiveRecord
             if ($product_item['season_id'] == $season_one) {
                 $items[$product_item['cat_b']]['season_id_1'] += $v['nums'];
                 $season_1 += $v['nums'];
+                $season_1_amount += $v['amount'];
             }
             if ($product_item['season_id'] == $season_two) {
                 $items[$product_item['cat_b']]['season_id_2'] += $v['nums'];
                 $season_2 += $v['nums'];
+                $season_1_amount += $v['amount'];
             }
 
             $items[$product_item['cat_b']]['small'][$item['s_id']]['s_id'] = $item['s_id'];
@@ -1700,6 +1704,6 @@ class ProductModel extends \yii\db\ActiveRecord
             if ($product_item['season_id'] == $season_two) $items[$product_item['cat_b']]['small'][$item['s_id']]['season_id_2'] += $v['nums'];
         }
         $all = count(array_unique($js));
-        return array('list' => $items, 'total_nums' => $total_nums, 'season_1' => $season_1, 'season_2' => $season_2, 'model' => $model, 'amount' => $amount, 'all' => $all);
+        return array('list' => $items, 'total_nums' => $total_nums, 'season_1' => $season_1, 'season_2' => $season_2, 'model' => $model, 'amount' => $amount, 'all' => $all, 'season_1_amount' => $season_1_amount, 'season_2_amount' => $season_2_amount);
     }
 }

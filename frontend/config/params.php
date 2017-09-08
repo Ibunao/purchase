@@ -25,14 +25,14 @@ return [
     'app_login_frame_y' => '0.460912', //app登录框的y轴
 
     //订货会基础数据相关配置
-    'season_one' => '3', //季节1ID ！【'1'(春) || '3'(秋)】
-    'season_two' => '4', //季节2ID ！【'2'(夏) || '4'(冬)】
-    'season_one_name' => '秋', //季节1名称 【'春' || '秋'】
-    'season_two_name' => '冬', //季节2名称 【'夏' || '冬'】
-    'season_title' => '秋冬',  //季节1、2 名称 【'春夏' || '秋冬'】
-    'purchase_oct' => '2017OCT秋冬订货会', //OCT订货会名称
-    'purchase_uki' => '2017Weekend秋冬订货会', //Weekend订货会名称
-    'purchase_all' => '2018秋冬订货会', //Weekend订货会名称
+    'season_one' => '1', //季节1ID ！【'1'(春) || '3'(秋)】
+    'season_two' => '2', //季节2ID ！【'2'(夏) || '4'(冬)】
+    'season_one_name' => '春', //季节1名称 【'春' || '秋'】
+    'season_two_name' => '夏', //季节2名称 【'夏' || '冬'】
+    'season_title' => '春夏',  //季节1、2 名称 【'春夏' || '秋冬'】
+    'purchase_oct' => '2017OCT春夏订货会', //OCT订货会名称
+    'purchase_uki' => '2017Weekend春夏订货会', //Weekend订货会名称
+    'purchase_all' => '2018春夏订货会', //Weekend订货会名称
     'web_sites_title' => '十月妈咪秋冬订货会', //前台网站title
     'customer_include' => true, //用户批量导入 允许：true, 不允许 ：false
     'product_include' => true, //商品批量导入 允许：true, 不允许 ：false

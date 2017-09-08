@@ -55,4 +55,8 @@ class TestController extends Controller
     {
         echo Yii::$app->homeUrl;
     }
+    public function actionEchart()
+    {
+        return $this->render('echart');
+    }
 }
