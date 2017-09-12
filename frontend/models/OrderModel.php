@@ -961,7 +961,7 @@ foreach ($queryAll as $key => $order) {
             ->from('meet_product')
             ->indexBy('product_id')
             ->all();
-        $customerQuery = (new Query)->select(['customer_id', 'code'])
+        $customerQuery = (new Query)->select(['customer_id', 'code', 'name'])
             ->from('meet_customer')
             ->indexBy('customer_id')
             ->all();
@@ -983,6 +983,7 @@ foreach ($queryAll as $key => $order) {
             try {
                 
                 $arr['code'] = $customerQuery[$val['customer_id']]['code'];
+                $arr['name'] = $customerQuery[$val['customer_id']]['name'];
             } catch (\Exception $e) {
                 var_dump($val['customer_id']);
             }
@@ -996,7 +997,8 @@ foreach ($queryAll as $key => $order) {
     /**
      * use
      * forder/actionGetAllPrice
-     *
+     * api/default/OrderProduct
+     * 
      * 前台添加商品
      */
     public function addAjax($product, $purchase_id, $customer_id, $customer_name)
@@ -1125,6 +1127,7 @@ foreach ($queryAll as $key => $order) {
     /**
      * use
      * forder/GetAllPrice
+     * api/default/index
      * 
      * 获取该用户的订货总量、金额、完成率、目标
      * @param $customer_id

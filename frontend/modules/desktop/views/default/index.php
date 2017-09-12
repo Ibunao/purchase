@@ -138,5 +138,67 @@ $this->params['breadcrumbs'] = [
         </div>
     </div>
 </div>
+<div class="col-xs-12" style="height: 30px ;"></div>
+<div class="col-sm-12 infobox-container">
+    <div class="infobox infobox-orange">
+        <div class="infobox-icon">
+            <i class="icon-shopping-cart"></i>
+        </div>
+        <div class="infobox-data">
+            <span class="infobox-data-number"><?= number_format(!empty($res['zy_target']) ? $res['zy_target'] : 0,2); ?>元</span>
+
+            <div class="infobox-content">直营订货总指标</div>
+        </div>
+    </div>
+    <div class="infobox infobox-orange">
+        <div class="infobox-icon">
+            <i class="icon-shopping-cart"></i>
+        </div>
+        <div class="infobox-data">
+            <span class="infobox-data-number"><?= number_format(!empty($res['zy_orders']) ? $res['zy_orders'] : 0,2); ?>元</span>
+
+            <div class="infobox-content">直营已订货总金额</div>
+        </div>
+    </div>
+    <div class="infobox infobox-orange">
+        <div class="infobox-icon">
+            <i class="icon-shopping-cart"></i>
+        </div>
+        <div class="infobox-data">
+            <span class="infobox-data-number"><?= number_format(!empty($res['zy_active']) ? $res['zy_active'] : 0,2); ?>元</span>
+
+            <div class="infobox-content">直营已订货未提交金额</div>
+        </div>
+    </div>
+    <div class="infobox infobox-orange">
+        <div class="infobox-icon">
+            <i class="icon-shopping-cart"></i>
+        </div>
+        <div class="infobox-data">
+            <span class="infobox-data-number"><?= number_format(!empty($res['zy_confirm']) ? $res['zy_confirm'] : 0,2); ?>元</span>
+            <div class="infobox-content">直营已提交未审核金额</div>
+        </div>
+    </div>
+    <div class="infobox infobox-orange">
+        <div class="infobox-icon">
+            <i class="icon-shopping-cart"></i>
+        </div>
+        <div class="infobox-data">
+            <span class="infobox-data-number"><?= number_format(!empty($res['zy_finish']) ? $res['zy_finish'] : 0,2); ?>元</span>
+
+            <div class="infobox-content">直营已审核订货金额</div>
+        </div>
+    </div>
+    <div class="infobox infobox-orange">
+        <div class="infobox-icon">
+            <i class="icon-shopping-cart"></i>
+        </div>
+        <div class="infobox-data">
+            <span class="infobox-data-number"><?= $res['zy_target_rate']; ?>%</span>
+
+            <div class="infobox-content">直营已审核订单完成率</div>
+        </div>
+    </div>
+</div>
 
 

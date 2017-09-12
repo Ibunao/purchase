@@ -855,19 +855,23 @@ class OrderController extends BaseController
 		   '吊牌价',
 		   '折扣',
 		   '客户代码',
-		   '订单编号'
+           '订单编号',
+		   '备注',
 		];
 		$fileName = '订单详细信息导出';
 		// $xls->export_begin($key, $fileName, 0);
 		foreach($order_info as $i => $v){
-		   $data[$i]['A'] = $v['model_sn'];
-		   $data[$i]['B'] = $v['color_no'];
-		   $data[$i]['C'] = $v['size_no'];
-		   $data[$i]['D'] = $v['nums'];
-		   $data[$i]['E'] = $v['cost_price'];
-		   $data[$i]['F'] = ($customer_info[$v['order_id']]['big_'.$model_info[$v['model_sn']].'_count'] /100);
-		   $data[$i]['G'] = $v['code'];
-		   $data[$i]['H'] = $v['order_id'];
+		   $data[$i]['A'] = '\''.$v['model_sn'];
+		   $data[$i]['B'] = '\''.$v['color_no'];
+		   $data[$i]['C'] = '\''.$v['size_no'];
+		   $data[$i]['D'] = '\''.$v['nums'];
+		   $data[$i]['E'] = '\''.$v['cost_price'];
+		   $data[$i]['F'] = '\''.($customer_info[$v['order_id']]['big_'.$model_info[$v['model_sn']].'_count'] /100);
+		   $data[$i]['G'] = '\''.$v['code'];
+           $data[$i]['H'] = '\''.$v['order_id'];
+		   $data[$i]['J'] = '\''.$v['name'];
+
+           // var_dump($data);exit;
 		   $i++;
 
             /*以下就是对处理Excel里的数据， 横着取数据，主要是这一步，其他基本都不要改*/  

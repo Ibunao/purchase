@@ -36,10 +36,25 @@ class DefaultController extends BaseController
         //加盟已订货finish状态的金额    审核完成
         $result['jm_finish'] = $table->getOrderNum('客户', 'finish');
 
+        //自营
+        //直营订货指标
+        $result['zy_target'] = $table->getAllUserTarget('直营');
+        //直营已订货总金额
+        $result['zy_orders'] = $table->getOrderNum('直营');
+        //直营已订货active状态的金额 已订货，未提交
+        $result['zy_active'] = $table->getOrderNum('直营', 'active');
+        //直营已订货confirm状态的金额  已提交，未审核
+        $result['zy_confirm'] = $table->getOrderNum('直营', 'confirm');
+        //直营已订货finish状态的金额    审核完成
+        $result['zy_finish'] = $table->getOrderNum('直营', 'finish');
+
+
         //总达成率  
         $result['all_target'] != 0 ? $result['all_target_rate'] = round($result['confirm_orders'] / $result['all_target']*100, 2) : $result['all_target_rate'] = 0;
         //加盟审核后达成率  
         $result['jm_target'] != 0 ? $result['jm_target_rate'] = round($result['jm_finish'] / $result['jm_target'] *100, 2) : $result['jm_target_rate'] = 0;
+
+        $result['zy_target'] != 0 ? $result['zy_target_rate'] = round($result['zy_finish'] / $result['zy_target'] *100, 2) : $result['zy_target_rate'] = 0;
 
         return $this->render('index', ['res'=>$result]);
     }

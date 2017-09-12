@@ -13,7 +13,7 @@ $config = yii\helpers\ArrayHelper::merge(
     require(__DIR__ . '/../config/main.php'),
     require(__DIR__ . '/../config/main-local.php')
 );
-echo "ding";exit;
+
 (new yii\web\Application($config))->run();
 //全局设置默认分页
 // \Yii::$container->set('yii\widgets\LinkPager', [
